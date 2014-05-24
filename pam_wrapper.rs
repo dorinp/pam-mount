@@ -2,7 +2,7 @@
 use std::libc::{c_int, size_t, c_char};
 use std::ptr;
 #[allow(non_camel_case_types)]
-pub type pam_handle_t = *u8;
+pub type pam_handle_t = *uint;
 #[allow(non_camel_case_types)]
 pub type c_str = *c_char;
 
@@ -23,30 +23,31 @@ pub static PAM_XDISPLAY: c_int    = 11;   /* X display name */
 pub static PAM_XAUTHDATA: c_int   = 12;   /* X server authentication data */
 pub static PAM_AUTHTOK_TYPE: c_int= 13;   /* The type for pam_get_authtok */
 
+pub static PAM_SUCCESS: c_int 	  = 0;
 
-	#[link(name = "pam")]
-	extern "C" {
-		// int pam_get_item(const pam_handle_t *pamh, int item_type, const void **item);
-		fn pam_get_item(pamh: pam_handle_t, item_type: c_int, item: *mut *i8) -> c_int;
-	}	
+#[link(name = "pam")]
+extern "C" {
+	// int pam_get_item(const pam_handle_t *pamh, int item_type, const void **item);
+	fn pam_get_item(pamh: pam_handle_t, item_type: c_int, item: *mut *i8) -> c_int;
+}	
 
 
 // PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv);
 #[no_mangle]
 #[allow(unused_variable)]
-pub extern "C" fn pam_sm_authenticate(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8) -> c_int {
+pub fn pam_sm_authenticate(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8) -> c_int {
 	println!("pam_sm_authenticate: hello from rust!!! {}", argc);
 	println!("pam_sm_authenticate: done {}", getPassword(pamh));
 	// println!("The program \"{}\" calculates the value {}",  program, accumulator);
-	return 0
+	return PAM_SUCCESS;
 }
 
 // PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv);
 #[no_mangle]
 #[allow(unused_variable)]
-pub extern "C" fn pam_sm_setcred(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8) -> c_int {
+pub fn pam_sm_setcred(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8) -> c_int {
 	// println!("pam_sm_setcred: hello from rust!!! {}", argc);
-	return 0
+	return PAM_SUCCESS;
 }
 
 fn getPassword(pamh: pam_handle_t) -> ~str {
