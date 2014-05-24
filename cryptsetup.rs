@@ -1,8 +1,10 @@
-use std::ptr;
+#![feature(globs)]
+#![feature(phase)]
+#![phase(syntax, link)] extern crate log;
 #[allow(non_camel_case_types)] 
 
 mod c {
-	use std::libc::{c_int, c_char, size_t, uint32_t};
+	pub use std::libc::{c_int, c_char, size_t, uint32_t};
 
 	pub type crypt_device = uint;
 	
@@ -27,41 +29,77 @@ mod c {
 	}	
 }
 
-static LUKS1: &'static str = "LUKS1";
+mod d {
+	use c::*;
+	use std::ptr;
+	use std::result::Result;
+	// use log::macros::debug;
+
+	static LUKS1: &'static str = "LUKS1";
+
+	#[deriving(Show)]
+	#[allow(raw_pointer_deriving)]
+	pub struct CryptoMounter {
+		priv cd: *crypt_device,
+		priv dm_name: ~str
+	}
+
+	impl CryptoMounter {
+
+		pub fn new(container: &str, dm_name: &str) -> Result<~CryptoMounter, int> {
+			let cd: *crypt_device = ptr::null();
+
+			let r = container.to_c_str().with_ref(|device|{
+				unsafe {crypt_init(&cd, device)}
+			});
+
+			let cm = ~CryptoMounter {cd: cd, dm_name: dm_name.to_owned()};
+			if r == 0 { cm.load() } else {Err(r as int)}
+		}
+
+		fn load(~self) -> Result<~CryptoMounter, int> {
+			let r = LUKS1.to_c_str().with_ref(|requested_type|{
+				unsafe {crypt_load(self.cd, requested_type, ptr::null())}
+			});
+
+			if r == 0 {Ok(self) } else {Err(r as int)}
+		}
+
+		pub fn unlock(~self, password: &str) -> Result<~CryptoMounter, int> {
+			let r = self.dm_name.to_c_str().with_ref(|name| {
+				password.to_c_str().with_ref(|passphrase| {
+					unsafe {
+						crypt_activate_by_passphrase(self.cd, name, CRYPT_ANY_SLOT, 
+						passphrase, password.len() as size_t, 0)
+					}
+				})
+			});
+			if r == 0 {Ok(self) } else {Err(r as int)}
+		}
+
+		pub fn lock(~self) -> int {
+			// debug!("locking {}", self.dm_name);
+			self.dm_name.to_c_str().with_ref(|name|{
+				unsafe {crypt_deactivate(self.cd, name)}
+			}) as int
+		}
+	}
+
+	impl Drop for CryptoMounter {
+    	fn drop(&mut self) {
+    		unsafe {crypt_free(self.cd)}
+		}
+	}
+
+}
+
 
 
 fn main() {
-	let cd: *c::crypt_device = ptr::null();
-
-	let r = "file.bin".to_c_str().with_ref(|device|{
-		unsafe {c::crypt_init(&cd, device)}
+	let cm = d::CryptoMounter::new("file.bin", "home").and_then(|cm|{
+		cm.unlock("preved")
 	});
-	println!("{}", r);
+	println!("{}", cm);
 
-	let r = LUKS1.to_c_str().with_ref(|requested_type|{
-		unsafe {c::crypt_load(cd, requested_type, ptr::null())}
-	});
-	println!("{}", r);
-
-	
-	let password = "preved";
-	let r = "home".to_c_str().with_ref(|name| {
-		password.to_c_str().with_ref(|passphrase| {
-			unsafe {
-				c::crypt_activate_by_passphrase(cd, name, c::CRYPT_ANY_SLOT, 
-				passphrase, password.len() as std::libc::size_t, 0)
-			}
-		})
-	});
-	println!("{}", r);
-
-
-	let r = "home".to_c_str().with_ref(|name|{
-		unsafe {c::crypt_deactivate(cd, name)}
-	});
-	println!("{}", r);
-
-
-	unsafe {c::crypt_free(cd)}
-	
+	cm.unwrap().lock();
 }
