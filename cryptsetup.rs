@@ -1,6 +1,7 @@
 #![feature(globs)]
 #![feature(phase)]
-#![phase(syntax, link)] extern crate log;
+#[phase(syntax, link)] extern crate log;
+
 #[allow(non_camel_case_types)] 
 
 mod c {
@@ -30,12 +31,15 @@ mod c {
 }
 
 mod d {
+
 	use c::*;
 	use std::ptr;
 	use std::result::Result;
-	// use log::macros::debug;
 
-	static LUKS1: &'static str = "LUKS1";
+	#[deriving(Show)]
+	pub enum ContainerFormat {
+		LOOPAES, LUKS1, PLAIN, TCRYPT
+	}
 
 	#[deriving(Show)]
 	#[allow(raw_pointer_deriving)]
@@ -46,7 +50,7 @@ mod d {
 
 	impl CryptoMounter {
 
-		pub fn new(container: &str, dm_name: &str) -> Result<~CryptoMounter, int> {
+		pub fn new(container: &str, container_format: ContainerFormat, dm_name: &str) -> Result<~CryptoMounter, int> {
 			let cd: *crypt_device = ptr::null();
 
 			let r = container.to_c_str().with_ref(|device|{
@@ -54,14 +58,15 @@ mod d {
 			});
 
 			let cm = ~CryptoMounter {cd: cd, dm_name: dm_name.to_owned()};
-			if r == 0 { cm.load() } else {Err(r as int)}
+			if r == 0 { cm.load(container_format) } else {Err(r as int)}
 		}
 
-		fn load(~self) -> Result<~CryptoMounter, int> {
-			let r = LUKS1.to_c_str().with_ref(|requested_type|{
+		fn load(~self, container_format: ContainerFormat) -> Result<~CryptoMounter, int> {
+			let r = container_format.to_str().to_c_str().with_ref(|requested_type|{
 				unsafe {crypt_load(self.cd, requested_type, ptr::null())}
 			});
 
+			debug!("initialising {}: {}", self, r);
 			if r == 0 {Ok(self) } else {Err(r as int)}
 		}
 
@@ -74,14 +79,16 @@ mod d {
 					}
 				})
 			});
+			debug!("unlocking {}: {}", self, r);
 			if r == 0 {Ok(self) } else {Err(r as int)}
 		}
 
 		pub fn lock(~self) -> int {
-			// debug!("locking {}", self.dm_name);
-			self.dm_name.to_c_str().with_ref(|name|{
+			let r = self.dm_name.to_c_str().with_ref(|name|{
 				unsafe {crypt_deactivate(self.cd, name)}
-			}) as int
+			}) as int;
+			debug!("locking {}: {}", self, r);
+			r
 		}
 	}
 
@@ -90,16 +97,14 @@ mod d {
     		unsafe {crypt_free(self.cd)}
 		}
 	}
-
 }
 
-
-
 fn main() {
-	let cm = d::CryptoMounter::new("file.bin", "home").and_then(|cm|{
+	let cm = d::CryptoMounter::new("file.bin", d::LUKS1, "home").and_then(|cm|{
 		cm.unlock("preved")
 	});
 	println!("{}", cm);
 
 	cm.unwrap().lock();
-}
+}	
+
