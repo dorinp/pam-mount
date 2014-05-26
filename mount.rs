@@ -84,6 +84,7 @@ mod mount {
 
 
 fn main() {
+	
 	let ctx = mount::Context::new("/dev/mapper/home", "/mnt");
 	ctx.mount();
 	ctx.umount();
