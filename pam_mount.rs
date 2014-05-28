@@ -1,11 +1,48 @@
 #![crate_id = "pam_mount#0.1"]
-#![crate_type = "dylib"]
-use std::libc::{c_int, size_t};
+// #![crate_type = "dylib"]
+use std::libc::{c_int, size_t, malloc};
+use std::cast::transmute_mut;
+use std::cell::RefCell;
+use std::rc::{Rc};
 use pam::{pam_handle_t, PAM_SUCCESS, PamResult};
 mod pam;
 
+// static mut vec: Rc[(~str, ~str)] = @[];
 
-// static mut vec: [~str, ..0] = [];
+struct Kaboom {
+	x: ~[~str]
+}
+
+/*#[start]
+#[no_mangle]
+pub fn start()  {
+	// println!("Hello !!!");
+}
+*/
+fn theStorage() -> &'static mut Kaboom {
+	
+	static mut MY_STATIC: *Kaboom = 0 as *Kaboom;
+	// static mut ss: RefCell<[~str]> = x;
+
+	// static k: Rc<Kaboom> = Rc::new(Kaboom{ x: ~[] });
+	unsafe { 
+		// let mut x = ~[~"hello", ~"world"];
+		
+
+		if (MY_STATIC == 0 as *Kaboom) {
+			let newval = ~Rc::new(Kaboom {x: ~[]});
+			// newval.inc_strong();
+			MY_STATIC = newval.deref() as *Kaboom;
+		}
+
+		transmute_mut(&*MY_STATIC) 
+	}
+}
+
+fn main() {
+	println!("bazoo");
+	theStorage().x.push(~"hello");
+}	
 
 fn on_login(pamh: pam_handle_t) -> PamResult {
 	match pam::getPassword(pamh) {
@@ -63,6 +100,3 @@ pub fn pam_sm_setcred(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8)
 }
 
 
-fn main() {
-	// let book_reviews: ~HashMap<&str, &str> = ~HashMap::new();
-}	
