@@ -11,9 +11,15 @@ fn i() -> &mut MyVec {
 fn main() {
 	println!("{}", *i());
 	hi();
-	hi();
+	i().push((~"bye", ~"kitty"));	
 	hi();
 	println!("{}", *i());
+
+	let o = i().iter().find(|& &(ref a, ref b)| { 
+		println!("{}", a); 
+		a == &~"bye"
+	});
+	println!("{}", o);
 }
 
 fn hi() {

@@ -98,8 +98,8 @@ extern "C" {
 	fn pam_get_item(pamh: pam_handle_t, item_type: c_int, item: *mut c_str) -> c_int;
 
 	// int pam_set_data(	pamh, module_data_name, data, (*cleanup)(pam_handle_t *pamh, void *data, int error_status));
-	fn pam_set_data(pamh: pam_handle_t, module_data_name: c_str, data: c_str, cleanup: *c_int) -> c_int;
-	fn pam_get_data(pamh: pam_handle_t, module_data_name: c_str, data: *mut c_str) -> c_int;
+	// fn pam_set_data(pamh: pam_handle_t, module_data_name: c_str, data: c_str, cleanup: *c_int) -> c_int;
+	// fn pam_get_data(pamh: pam_handle_t, module_data_name: c_str, data: *mut c_str) -> c_int;
 }	
 
 pub fn getPassword(pamh: pam_handle_t) -> Result<~str, ~str> {
@@ -110,7 +110,7 @@ pub fn getUser(pamh: pam_handle_t) -> Result<~str, ~str> {
 	getItem(pamh, PAM_USER)
 }
 
-pub fn setData(pamh: pam_handle_t, name: &str, data: &str) -> Result<int, ~str> {
+/*pub fn setData(pamh: pam_handle_t, name: &str, data: &str) -> Result<int, ~str> {
 	let r = name.to_c_str().with_ref(|name| {
 		data.to_c_str().with_ref(|data| {
 			println!("set data: {}", data);
@@ -139,7 +139,7 @@ pub fn getData(pamh: pam_handle_t, name: &str) -> Result<~str, ~str> {
 	}
 }
 
-
+*/
 fn getItem(pamh: pam_handle_t, item_type: PamItemType) -> Result<~str, ~str> {
 	let mut info: c_str = ptr::null();
 	let r = unsafe { pam_get_item(pamh, item_type as c_int, &mut info) };
