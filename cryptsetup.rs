@@ -1,5 +1,3 @@
-// #![feature(phase)]
-// #[phase(syntax, link)] extern crate log;
 #[allow(non_camel_case_types)] 
 
 use std::ptr;
@@ -95,7 +93,7 @@ impl Drop for CryptoMounter {
 	}
 }
 
-// #[test]
+#[test]
 fn main() {
 	let cm = CryptoMounter::new("file.bin", LUKS1, "home").and_then(|cm|{
 		cm.unlock("preved")

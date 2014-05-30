@@ -69,7 +69,11 @@ pub fn err(msg: &str) {
 }
 
 pub fn warn(msg: &str) {
-	log(msg, LOG_WARNING);
+  log(msg, LOG_WARNING);
+}
+
+pub fn info(msg: &str) {
+	log(msg, LOG_INFO);
 }
 
 pub fn log(msg: &str, severity: Severity) {

@@ -32,14 +32,14 @@ fn on_login(pamh: pam_handle_t) -> PamResult {
 fn do_mount(user: &str, password: &str) {
 	let (container, dev, mountpoint) = mount_info_for(user);
 
-	syslog::notice(user + ": unlocking  " + container);
-	let r = CryptoMounter::new(container, cryptsetup::LUKS1, dev)
+	syslog::infoq(user + ": unlocking  " + container);
+	let r = CryptoMounter::new(container, cryptsetup::LUKS1, user)
 	.and_then(|cm|{
 		cm.unlock(password)
 	});
 	log_if_error(r, "unable to unlock");
 
-	syslog::notice(user + ": mounting " + dev + " to " + mountpoint);
+	syslog::info(user + ": mounting " + dev + " to " + mountpoint);
 	let ctx = mount::Context::new(dev, mountpoint);
 	let r = ctx.mount();
 	log_if_error(r, "unable to mount");
@@ -56,11 +56,11 @@ fn on_session_closed(user: &str) {
 	let (container, dev, mountpoint) = mount_info_for(user);
 
 	let ctx = mount::Context::new(dev, mountpoint);
-	syslog::notice("umounting " + dev);
+	syslog::info("umounting " + dev);
 	let r = ctx.umount();
 	log_if_error(r, "unable to unmount");
 
-	syslog::notice(user + ": locking  " + container);
+	syslog::info(user + ": locking  " + container);
 	let r = CryptoMounter::new(container, cryptsetup::LUKS1, dev)
 	.and_then(|cm|{
 		cm.lock()
@@ -70,7 +70,10 @@ fn on_session_closed(user: &str) {
 }
 
 fn mount_info_for(user: &str) -> (~str, ~str, ~str) {
-	(~"/home/d/dev/pam-mount/file.bin", ~"/dev/mapper/" + user, ~"/mnt")
+	match user {
+		"d" 	=> (~"/home/d.bin", ~"/dev/mapper/" + user, ~"/home/" + user),
+		_	=> (~"/home/macos.vdi", ~"/dev/mapper/" + user, ~"/home/" + user)
+	}
 }
 
 /*PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, argc, argv);
@@ -79,10 +82,8 @@ fn mount_info_for(user: &str) -> (~str, ~str, ~str) {
 #[allow(unused_variable)]
 #[allow(visible_private_types)]
 pub fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8) -> c_int {
-	// syslog::open_log("pam_mount", syslog::LOG_DAEMON);
-
 	let user = pam::getUser(pamh).unwrap();
-	syslog::notice("pam_sm_open_session " + user);
+	syslog::info("pam_sm_open_session " + user);
 	// println!("pam_sm_open_session: {}", user);
 	let mut index = -1;
 	let saved_credentials = creds().iter().find(|& &(ref u, ref p)| { index+=1; u.eq(&user) });
