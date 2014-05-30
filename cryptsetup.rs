@@ -61,8 +61,7 @@ impl CryptoMounter {
 			unsafe {crypt_load(self.cd, requested_type, ptr::null())}
 		});
 
-		// debug!("initialising {}: {}", self, r);
-		if r == 0 {Ok(self) } else {Err(r as int)}
+		self.result(r)
 	}
 
 	pub fn unlock(~self, password: &str) -> Result<~CryptoMounter, int> {
@@ -74,17 +73,19 @@ impl CryptoMounter {
 				}
 			})
 		});
-		// debug!("unlocking {}: {}", self, r);
-		if r == 0 {Ok(self) } else {Err(r as int)}
+		
+		self.result(r)
 	}
 
-	#[allow(dead_code)]
-	pub fn lock(~self) -> int {
+	pub fn lock(~self) -> Result<~CryptoMounter, int>  {
 		let r = self.dm_name.to_c_str().with_ref(|name|{
 			unsafe {crypt_deactivate(self.cd, name)}
-		}) as int;
-		// debug!("locking {}: {}", self, r);
-		r
+		});
+		self.result(r)
+	}
+
+	fn result(~self, r: c_int) -> Result<~CryptoMounter, int> {
+		if r == 0 {Ok(self) } else {Err(r as int)}	
 	}
 }
 
@@ -94,7 +95,7 @@ impl Drop for CryptoMounter {
 	}
 }
 
-#[test]
+// #[test]
 fn main() {
 	let cm = CryptoMounter::new("file.bin", LUKS1, "home").and_then(|cm|{
 		cm.unlock("preved")

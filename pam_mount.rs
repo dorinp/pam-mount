@@ -32,26 +32,40 @@ fn on_login(pamh: pam_handle_t) -> PamResult {
 fn do_mount(user: &str, password: &str) {
 	let (container, dev, mountpoint) = mount_info_for(user);
 
-	let cm = CryptoMounter::new(container, cryptsetup::LUKS1, dev)
+	syslog::notice(user + ": unlocking  " + container);
+	let r = CryptoMounter::new(container, cryptsetup::LUKS1, dev)
 	.and_then(|cm|{
 		cm.unlock(password)
 	});
-	
+	log_if_error(r, "unable to unlock");
+
 	syslog::notice(user + ": mounting " + dev + " to " + mountpoint);
 	let ctx = mount::Context::new(dev, mountpoint);
 	let r = ctx.mount();
+	log_if_error(r, "unable to mount");
+}
+
+fn log_if_error<OK, E: ToStr>(r: Result<OK, E>, message: &str) {
 	match r {
 		Ok(_) => (),
-		Err(err) => syslog::err("unable to mount: " + err)
+		Err(err) => syslog::err(message  + ": " + err.to_str())
 	}
 }
 
 fn on_session_closed(user: &str) {
-	let (_, dev, mountpoint) = mount_info_for(user);
+	let (container, dev, mountpoint) = mount_info_for(user);
 
 	let ctx = mount::Context::new(dev, mountpoint);
+	syslog::notice("umounting " + dev);
 	let r = ctx.umount();
-	syslog::notice("umounting " + dev + ": " + r.to_str());
+	log_if_error(r, "unable to unmount");
+
+	syslog::notice(user + ": locking  " + container);
+	let r = CryptoMounter::new(container, cryptsetup::LUKS1, dev)
+	.and_then(|cm|{
+		cm.lock()
+	});
+	log_if_error(r, "unable to unlock");
 
 }
 
