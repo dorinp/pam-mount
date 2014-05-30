@@ -1,5 +1,7 @@
 #[allow(non_camel_case_types)] 
 use std::libc::{c_int, c_char};
+// use std::c_str::CString;
+use std::os::last_os_error;
 
 #[allow(non_camel_case_types)]
 type libmnt_context = *uint;
@@ -17,13 +19,13 @@ extern "C" {
 }	
 
 /*	enum MountError {
-	5006 MNT_ERR_AMBIFS     libblkid detected more filesystems on the device 
-	5005 MNT_ERR_APPLYFLAGS failed to apply MS_PROPAGATION flags 
-	5003 MNT_ERR_LOOPDEV	loopdev setup failed, errno set by libc 
-	5004 MNT_ERR_MOUNTOPT   failed to parse/use userspace mount options 
 	5000 MNT_ERR_NOFSTAB    not found required entry in fstab 
 	5001 MNT_ERR_NOFSTYPE   failed to detect filesystem type
 	5002 MNT_ERR_NOSOURCE   required mount source undefined 
+	5003 MNT_ERR_LOOPDEV	loopdev setup failed, errno set by libc 
+	5004 MNT_ERR_MOUNTOPT   failed to parse/use userspace mount options 
+	5005 MNT_ERR_APPLYFLAGS failed to apply MS_PROPAGATION flags 
+	5006 MNT_ERR_AMBIFS     libblkid detected more filesystems on the device 
 }
 */	
 pub struct Context {
@@ -50,18 +52,22 @@ impl Context {
 		x
 	}
 
-	pub fn mount(&self) {
-		let r = unsafe { mnt_context_mount(self.ctx) };
-		assert_eq!(r, 0);
+	pub fn mount(&self) -> Result<int, ~str> {
+		Context::to_result( unsafe { mnt_context_mount(self.ctx) })
 	}
 
-	pub fn umount(&self) {
-		let r = unsafe { mnt_context_umount(self.ctx) };
-		// println!("{}, {}", r, self.error_description(r))
-		assert_eq!(r, 0);
+	fn to_result(error_code: c_int) -> Result<int, ~str> {
+		match error_code {
+			0 => Ok(0),
+			_ => Err(error_code.to_str() + ": " + last_os_error())
+		}
 	}
 
-/*		pub fn error_description(&self, err: c_int) -> ~str {
+	pub fn umount(&self) -> Result<int, ~str> {
+		Context::to_result( unsafe { mnt_context_umount(self.ctx) })
+	}
+
+/*	fn error_description(&self, err: c_int) -> ~str {
 		let buf_size = 500;
 		let mut buf: Vec<c_char> = Vec::with_capacity(buf_size);
 
@@ -71,7 +77,7 @@ impl Context {
 			z.as_str().unwrap_or("boo").to_owned()
 		}
 	}
-*/	}
+*/}
 impl Drop for Context {
 	fn drop(&mut self) {
 		unsafe { mnt_free_context(self.ctx) }
@@ -80,12 +86,11 @@ impl Drop for Context {
 
 
 
-
+#[allow(dead_code)]
 fn main() {
 
 	let ctx = Context::new("/dev/mapper/home", "/mnt");
-	ctx.mount();
-	ctx.umount();
-	// println!("{}", ctx)
-	// c::mnt_context_set_source(ctx, "/dev/mapper/home")
+	println!("{}", ctx.mount());
+	let ctx = Context::new("/dev/mapper/home", "/mnt");
+	println!("{}", ctx.umount());
 }
