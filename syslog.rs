@@ -44,7 +44,7 @@ pub enum Facility {
   LOG_LOCAL7 = 23 << 3
 }
 
-pub fn open_log(ident: String, facility: Facility) {
+pub fn open_log(ident: &str, facility: Facility) {
 	static mut buf: [i8, ..30] = [
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -60,23 +60,23 @@ pub fn open_log(ident: String, facility: Facility) {
 }
 
 
-pub fn notice(msg: String) {
+pub fn notice(msg: &str) {
 	log(msg, LOG_NOTICE);
 }
 
-pub fn err(msg: String) {
+pub fn err(msg: &str) {
 	log(msg, LOG_ERR);
 }
 
-pub fn warn(msg: String) {
+pub fn warn(msg: &str) {
   log(msg, LOG_WARNING);
 }
 
-pub fn info(msg: String) {
+pub fn info(msg: &str) {
 	log(msg, LOG_INFO);
 }
 
-pub fn log(msg: String, severity: Severity) {
+pub fn log(msg: &str, severity: Severity) {
 	msg.to_c_str().with_ref(|msg| {
 		unsafe { syslog(severity as c_int, msg) }
 	});
@@ -84,7 +84,7 @@ pub fn log(msg: String, severity: Severity) {
 
 #[allow(dead_code)]
 fn main() {
-	open_log("yoo".to_string(), LOG_DAEMON);
-	log("preved".to_string(), LOG_NOTICE);
-	notice("brynza".to_string());
+	open_log("yoo", LOG_DAEMON);
+	log("preved", LOG_NOTICE);
+	notice("brynza");
 }

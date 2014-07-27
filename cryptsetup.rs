@@ -50,7 +50,7 @@ impl CryptoMounter {
 			unsafe {crypt_init(&cd, device)}
 		});
 
-		let cm = box CryptoMounter {cd: cd, dm_name: dm_name.to_owned()};
+		let cm = box CryptoMounter {cd: cd, dm_name: dm_name.to_string()};
 		if r == 0 { cm.load(container_format) } else {Err(r as int)}
 	}
 

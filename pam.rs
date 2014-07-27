@@ -102,12 +102,12 @@ extern "C" {
 	// fn pam_get_data(pamh: pam_handle_t, module_data_name: c_str, data: *mut c_str) -> c_int;
 }	
 
-pub fn getPassword(pamh: pam_handle_t) -> Result<String, String> {
-	getItem(pamh, PAM_AUTHTOK)
+pub fn get_password(pamh: pam_handle_t) -> Result<String, String> {
+	get_item(pamh, PAM_AUTHTOK)
 }
 
-pub fn getUser(pamh: pam_handle_t) -> Result<String, String> {
-	getItem(pamh, PAM_USER)
+pub fn get_user(pamh: pam_handle_t) -> Result<String, String> {
+	get_item(pamh, PAM_USER)
 }
 
 /*pub fn setData(pamh: pam_handle_t, name: &str, data: &str) -> Result<int, String> {
@@ -140,7 +140,7 @@ pub fn getData(pamh: pam_handle_t, name: &str) -> Result<String, String> {
 }
 
 */
-fn getItem(pamh: pam_handle_t, item_type: PamItemType) -> Result<String, String> {
+fn get_item(pamh: pam_handle_t, item_type: PamItemType) -> Result<String, String> {
 	let mut info: c_str = ptr::null();
 	let r = unsafe { pam_get_item(pamh, item_type as c_int, &mut info) };
 
@@ -154,7 +154,7 @@ fn ok_if_not_null(info: c_str) -> Result<String, String> {
 	if info == ptr::null() { Err("the pointer is null".to_string()) } 
 	else {
 		let z = unsafe { ::std::c_str::CString::new(info, false) };
-		Ok(z.as_str().unwrap_or("").to_owned())
+		Ok(z.as_str().unwrap_or("").to_string())
 	}
 }
 
