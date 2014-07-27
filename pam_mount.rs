@@ -1,6 +1,8 @@
 #![crate_id = "pam_mount#0.1"]
 #![crate_type = "dylib"]
-use std::libc::{c_int, size_t};
+extern crate libc;
+	
+use libc::{c_int, size_t};
 use pam::{pam_handle_t, PAM_SUCCESS, PamResult};
 use singleton::Singleton;
 use cryptsetup::{CryptoMounter};
@@ -10,7 +12,7 @@ mod cryptsetup;
 mod mount;
 mod syslog;
 
-type VectorOfPairs = Vec<(~str, ~str)>;
+type VectorOfPairs = Vec<(String, String)>;
 
 fn creds() -> &mut VectorOfPairs {
 	let z: &mut VectorOfPairs = Singleton::instance();
@@ -24,7 +26,7 @@ fn on_login(pamh: pam_handle_t) -> PamResult {
 			let user = pam::getUser(pamh).unwrap();
 			creds().push((user, pass));
 		},
-		Err(err) => syslog::err("pam_sm_authenticate: unable to get credentials: " + err)
+		Err(err) => syslog::err(format!("pam_sm_authenticate: unable to get credentials: {}", err))
 	}
 	PAM_SUCCESS
 }
@@ -32,7 +34,7 @@ fn on_login(pamh: pam_handle_t) -> PamResult {
 fn do_mount(user: &str, password: &str) {
 	let (container, dev, mountpoint) = mount_info_for(user);
 
-	syslog::infoq(user + ": unlocking  " + container);
+	syslog::info(user + ": unlocking  " + container);
 	let r = CryptoMounter::new(container, cryptsetup::LUKS1, user)
 	.and_then(|cm|{
 		cm.unlock(password)
@@ -69,10 +71,10 @@ fn on_session_closed(user: &str) {
 
 }
 
-fn mount_info_for(user: &str) -> (~str, ~str, ~str) {
+fn mount_info_for(user: &str) -> (String, String, String) {
 	match user {
-		"d" 	=> (~"/home/d.bin", ~"/dev/mapper/" + user, ~"/home/" + user),
-		_	=> (~"/home/macos.vdi", ~"/dev/mapper/" + user, ~"/home/" + user)
+		"d" 	=> (box "/home/d.bin", box "/dev/mapper/" + user, box "/home/" + user),
+		_	=> (box "/home/macos.vdi", box "/dev/mapper/" + user, box "/home/" + user)
 	}
 }
 
@@ -84,7 +86,7 @@ fn mount_info_for(user: &str) -> (~str, ~str, ~str) {
 pub fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8) -> c_int {
 	let user = pam::getUser(pamh).unwrap();
 	syslog::info("pam_sm_open_session " + user);
-	// println!("pam_sm_open_session: {}", user);
+
 	let mut index = -1;
 	let saved_credentials = creds().iter().find(|& &(ref u, ref p)| { index+=1; u.eq(&user) });
 

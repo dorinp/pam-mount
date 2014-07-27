@@ -2,7 +2,7 @@
 
 use std::ptr;
 use std::result::Result;
-use std::libc::{c_int, c_char, size_t, uint32_t};
+use libc::{c_int, c_char, size_t, uint32_t};
 
 #[allow(non_camel_case_types)]
 type crypt_device = uint;
@@ -29,7 +29,7 @@ extern "C" {
 
 
 
-#[deriving(Show)]
+#[deriving(Show)]	
 pub enum ContainerFormat {
 	LOOPAES, LUKS1, PLAIN, TCRYPT
 }
@@ -37,24 +37,24 @@ pub enum ContainerFormat {
 #[deriving(Show)]
 #[allow(raw_pointer_deriving)]
 pub struct CryptoMounter {
-	priv cd: *crypt_device,
-	priv dm_name: ~str
+	cd: *crypt_device,
+	dm_name: String
 }
 
 impl CryptoMounter {
 
-	pub fn new(container: &str, container_format: ContainerFormat, dm_name: &str) -> Result<~CryptoMounter, int> {
+	pub fn new(container: &str, container_format: ContainerFormat, dm_name: &str) -> Result<Box<CryptoMounter>, int> {
 		let cd: *crypt_device = ptr::null();
 
 		let r = container.to_c_str().with_ref(|device|{
 			unsafe {crypt_init(&cd, device)}
 		});
 
-		let cm = ~CryptoMounter {cd: cd, dm_name: dm_name.to_owned()};
+		let cm = box CryptoMounter {cd: cd, dm_name: dm_name.to_owned()};
 		if r == 0 { cm.load(container_format) } else {Err(r as int)}
 	}
 
-	fn load(~self, container_format: ContainerFormat) -> Result<~CryptoMounter, int> {
+	fn load(~self, container_format: ContainerFormat) -> Result<Box<CryptoMounter>, int> {
 		let r = container_format.to_str().to_c_str().with_ref(|requested_type|{
 			unsafe {crypt_load(self.cd, requested_type, ptr::null())}
 		});
@@ -62,7 +62,7 @@ impl CryptoMounter {
 		self.result(r)
 	}
 
-	pub fn unlock(~self, password: &str) -> Result<~CryptoMounter, int> {
+	pub fn unlock(~self, password: &str) -> Result<Box<CryptoMounter>, int> {
 		let r = self.dm_name.to_c_str().with_ref(|name| {
 			password.to_c_str().with_ref(|passphrase| {
 				unsafe {
@@ -75,14 +75,14 @@ impl CryptoMounter {
 		self.result(r)
 	}
 
-	pub fn lock(~self) -> Result<~CryptoMounter, int>  {
+	pub fn lock(~self) -> Result<Box<CryptoMounter>, int>  {
 		let r = self.dm_name.to_c_str().with_ref(|name|{
 			unsafe {crypt_deactivate(self.cd, name)}
 		});
 		self.result(r)
 	}
 
-	fn result(~self, r: c_int) -> Result<~CryptoMounter, int> {
+	fn result(~self, r: c_int) -> Result<Box<CryptoMounter>, int> {
 		if r == 0 {Ok(self) } else {Err(r as int)}	
 	}
 }

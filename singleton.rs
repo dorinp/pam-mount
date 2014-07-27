@@ -1,6 +1,5 @@
-use std::libc::{size_t, malloc, c_void};
+use libc::{size_t, malloc, c_void};
 use std::mem;
-use std::cast;
 use std::default::Default;
 
 pub struct Singleton<T>;
@@ -14,7 +13,7 @@ impl<T: Default> Singleton<T> {
 				let x: *mut T = Singleton::new();
 				v = x as *mut c_void;
 			}		
-			cast::transmute(v)
+			mem::transmute(v)
 		}
 	}
 

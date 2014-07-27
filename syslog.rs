@@ -1,4 +1,4 @@
-use std::libc::{c_int, c_char};
+use libc::{c_int, c_char};
 use std::ptr::copy_nonoverlapping_memory;
 
 extern "C" {
@@ -44,7 +44,7 @@ pub enum Facility {
   LOG_LOCAL7 = 23 << 3
 }
 
-pub fn open_log(ident: &str, facility: Facility) {
+pub fn open_log(ident: String, facility: Facility) {
 	static mut buf: [i8, ..30] = [
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -60,23 +60,23 @@ pub fn open_log(ident: &str, facility: Facility) {
 }
 
 
-pub fn notice(msg: &str) {
+pub fn notice(msg: String) {
 	log(msg, LOG_NOTICE);
 }
 
-pub fn err(msg: &str) {
+pub fn err(msg: String) {
 	log(msg, LOG_ERR);
 }
 
-pub fn warn(msg: &str) {
+pub fn warn(msg: String) {
   log(msg, LOG_WARNING);
 }
 
-pub fn info(msg: &str) {
+pub fn info(msg: String) {
 	log(msg, LOG_INFO);
 }
 
-pub fn log(msg: &str, severity: Severity) {
+pub fn log(msg: String, severity: Severity) {
 	msg.to_c_str().with_ref(|msg| {
 		unsafe { syslog(severity as c_int, msg) }
 	});
@@ -84,7 +84,7 @@ pub fn log(msg: &str, severity: Severity) {
 
 #[allow(dead_code)]
 fn main() {
-	open_log("yoo", LOG_DAEMON);
-	log("preved", LOG_NOTICE);
-	notice("brynza");
+	open_log("yoo".to_string(), LOG_DAEMON);
+	log("preved".to_string(), LOG_NOTICE);
+	notice("brynza".to_string());
 }

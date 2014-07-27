@@ -1,5 +1,5 @@
 #[allow(non_camel_case_types)] 
-use std::libc::{c_int, c_char};
+use libc::{c_int, c_char};
 // use std::c_str::CString;
 use std::os::last_os_error;
 
@@ -29,7 +29,7 @@ extern "C" {
 }
 */	
 pub struct Context {
-	priv ctx: libmnt_context
+	ctx: libmnt_context
 }
 
 
@@ -52,22 +52,22 @@ impl Context {
 		x
 	}
 
-	pub fn mount(&self) -> Result<int, ~str> {
+	pub fn mount(&self) -> Result<int, String> {
 		Context::to_result( unsafe { mnt_context_mount(self.ctx) })
 	}
 
-	fn to_result(error_code: c_int) -> Result<int, ~str> {
+	fn to_result(error_code: c_int) -> Result<int, String> {
 		match error_code {
 			0 => Ok(0),
 			_ => Err(error_code.to_str() + ": " + last_os_error())
 		}
 	}
 
-	pub fn umount(&self) -> Result<int, ~str> {
+	pub fn umount(&self) -> Result<int, String> {
 		Context::to_result( unsafe { mnt_context_umount(self.ctx) })
 	}
 
-/*	fn error_description(&self, err: c_int) -> ~str {
+/*	fn error_description(&self, err: c_int) -> String {
 		let buf_size = 500;
 		let mut buf: Vec<c_char> = Vec::with_capacity(buf_size);
 

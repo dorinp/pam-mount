@@ -1,6 +1,6 @@
-use std::libc::{c_int, c_char};
+use libc::{c_int, c_char};
 use std::ptr;
-use std::cast;
+use std::mem;
 
 #[allow(non_camel_case_types)]
 pub type pam_handle_t = *uint;
@@ -9,7 +9,7 @@ type c_str = *c_char;
 
 #[repr(i32)]
 #[allow(non_camel_case_types)]
-#[deriving(Eq,Show)]
+#[deriving(PartialEq,Show)]
 pub enum PamResult {
 	PAM_SUCCESS					= 0,
 	PAM_OPEN_ERR				= 1,	/* dlopen() failure when dynamically */
@@ -70,7 +70,7 @@ pub enum PamResult {
 
 impl PamResult {
 	fn from_int(v: c_int) -> PamResult {
-		unsafe { cast::transmute(v) }
+		unsafe { mem::transmute(v) }
 	}
 }
 
@@ -102,15 +102,15 @@ extern "C" {
 	// fn pam_get_data(pamh: pam_handle_t, module_data_name: c_str, data: *mut c_str) -> c_int;
 }	
 
-pub fn getPassword(pamh: pam_handle_t) -> Result<~str, ~str> {
+pub fn getPassword(pamh: pam_handle_t) -> Result<String, String> {
 	getItem(pamh, PAM_AUTHTOK)
 }
 
-pub fn getUser(pamh: pam_handle_t) -> Result<~str, ~str> {
+pub fn getUser(pamh: pam_handle_t) -> Result<String, String> {
 	getItem(pamh, PAM_USER)
 }
 
-/*pub fn setData(pamh: pam_handle_t, name: &str, data: &str) -> Result<int, ~str> {
+/*pub fn setData(pamh: pam_handle_t, name: &str, data: &str) -> Result<int, String> {
 	let r = name.to_c_str().with_ref(|name| {
 		data.to_c_str().with_ref(|data| {
 			println!("set data: {}", data);
@@ -125,7 +125,7 @@ pub fn getUser(pamh: pam_handle_t) -> Result<~str, ~str> {
 }
 
 
-pub fn getData(pamh: pam_handle_t, name: &str) -> Result<~str, ~str> {
+pub fn getData(pamh: pam_handle_t, name: &str) -> Result<String, String> {
 	let mut info: c_str = ptr::null();
 
 	let r = name.to_c_str().with_ref(|name| {
@@ -140,7 +140,7 @@ pub fn getData(pamh: pam_handle_t, name: &str) -> Result<~str, ~str> {
 }
 
 */
-fn getItem(pamh: pam_handle_t, item_type: PamItemType) -> Result<~str, ~str> {
+fn getItem(pamh: pam_handle_t, item_type: PamItemType) -> Result<String, String> {
 	let mut info: c_str = ptr::null();
 	let r = unsafe { pam_get_item(pamh, item_type as c_int, &mut info) };
 
@@ -150,8 +150,8 @@ fn getItem(pamh: pam_handle_t, item_type: PamItemType) -> Result<~str, ~str> {
 	}
 }
 
-fn ok_if_not_null(info: c_str) -> Result<~str, ~str> {
-	if info == ptr::null() { Err(~"the pointer is null") } 
+fn ok_if_not_null(info: c_str) -> Result<String, String> {
+	if info == ptr::null() { Err("the pointer is null".to_string()) } 
 	else {
 		let z = unsafe { ::std::c_str::CString::new(info, false) };
 		Ok(z.as_str().unwrap_or("").to_owned())
