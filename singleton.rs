@@ -1,3 +1,4 @@
+extern crate libc;
 use libc::{size_t, malloc, c_void};
 use std::mem;
 use std::default::Default;
@@ -25,7 +26,7 @@ impl<T: Default> Singleton<T> {
 		// `*ptr` is uninitialized, and `*ptr = value` would attempt to destroy it
 		// move_val_init moves a value into this memory without
 		// attempting to drop the original value.
-		mem::move_val_init(&mut *ptr, value);
+		mem::replace(&mut *ptr, value);
 		ptr
 	}
 }

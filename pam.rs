@@ -1,15 +1,18 @@
+extern crate libc;
+
 use libc::{c_int, c_char};
 use std::ptr;
 use std::mem;
 
 #[allow(non_camel_case_types)]
-pub type pam_handle_t = *uint;
+pub type pam_handle_t = *const uint;
 #[allow(non_camel_case_types)]
-type c_str = *c_char;
+type c_str = *const c_char;
 
 #[repr(i32)]
 #[allow(non_camel_case_types)]
 #[deriving(PartialEq,Show)]
+#[allow(dead_code)]
 pub enum PamResult {
 	PAM_SUCCESS					= 0,
 	PAM_OPEN_ERR				= 1,	/* dlopen() failure when dynamically */
@@ -93,6 +96,7 @@ enum PamItemType {
 }
 
 #[link(name = "pam")]
+#[allow(ctypes)]
 extern "C" {
 	// int pam_get_item(const pam_handle_t *pamh, int item_type, const void **item);
 	fn pam_get_item(pamh: pam_handle_t, item_type: c_int, item: *mut c_str) -> c_int;
@@ -146,7 +150,7 @@ fn get_item(pamh: pam_handle_t, item_type: PamItemType) -> Result<String, String
 
 	match PamResult::from_int(r) {
 		PAM_SUCCESS => ok_if_not_null(info),
-		e 			=> Err(e.to_str())
+		e 			=> Err(e.to_string())
 	}
 }
 

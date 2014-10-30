@@ -1,16 +1,17 @@
+extern crate libc;
 #[allow(non_camel_case_types)] 
 use libc::{c_int, c_char};
-// use std::c_str::CString;
 use std::os::last_os_error;
 
-#[allow(non_camel_case_types)]
-type libmnt_context = *uint;
+#[repr(C)]
+type libmnt_context = *const uint;
 
 #[link(name = "mount")]
+#[allow(ctypes)] 
 extern "C" {
 	fn mnt_new_context() -> libmnt_context;
-	fn mnt_context_set_source(ctx: libmnt_context, source: *c_char) -> c_int;
-	fn mnt_context_set_target(ctx: libmnt_context, target: *c_char) -> c_int;
+	fn mnt_context_set_source(ctx: libmnt_context, source: *const c_char) -> c_int;
+	fn mnt_context_set_target(ctx: libmnt_context, target: *const c_char) -> c_int;
 	fn mnt_context_mount(ctx: libmnt_context) -> c_int;
 	fn mnt_context_umount(ctx: libmnt_context) -> c_int;
 	fn mnt_free_context(ctx: libmnt_context);
@@ -32,21 +33,14 @@ pub struct Context {
 	ctx: libmnt_context
 }
 
-
 impl Context {
 	pub fn new(source: &str, target: &str) -> Context {
 		let x = Context {ctx: unsafe { mnt_new_context() }};
 		unsafe { 
-
-			let r = source.to_c_str().with_ref(|src| {
-				mnt_context_set_source(x.ctx, src)
-			}) as int;
-			// let r = mnt_context_set_source(x.ctx, source.as_ptr());
+			let r = mnt_context_set_source(x.ctx, source.to_c_str().as_ptr()) as int;
 			assert_eq!(r, 0);
 
-			let r = target.to_c_str().with_ref(|tgt| {
-				mnt_context_set_target(x.ctx, tgt)
-			});
+			mnt_context_set_target(x.ctx, target.to_c_str().as_ptr());
 			assert_eq!(r, 0);
 		};
 		x
@@ -59,7 +53,7 @@ impl Context {
 	fn to_result(error_code: c_int) -> Result<int, String> {
 		match error_code {
 			0 => Ok(0),
-			_ => Err(error_code.to_str() + ": " + last_os_error())
+			_ => Err(error_code.to_string() + ": " + last_os_error())
 		}
 	}
 

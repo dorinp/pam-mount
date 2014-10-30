@@ -1,4 +1,4 @@
-#![crate_id = "pam_mount#0.1"]
+#![crate_name = "pam_mount"]
 #![crate_type = "dylib"]
 extern crate libc;
 	
@@ -14,7 +14,7 @@ mod syslog;
 
 type VectorOfPairs = Vec<(String, String)>;
 
-fn creds() -> &mut VectorOfPairs {
+fn creds<'r>() -> &'r mut VectorOfPairs {
 	let z: &mut VectorOfPairs = Singleton::instance();
 	z
 }
@@ -47,10 +47,10 @@ fn do_mount(user: &str, password: &str) {
 	log_if_error(r, "unable to mount");
 }
 
-fn log_if_error<OK, E: ToStr>(r: Result<OK, E>, message: &str) {
+fn log_if_error<OK, E: ToString>(r: Result<OK, E>, message: &str) {
 	match r {
 		Ok(_) => (),
-		Err(err) => syslog::err(format!("{}: {}", message, err.to_str()).as_slice())
+		Err(err) => syslog::err(format!("{}: {}", message, err.to_string()).as_slice())
 	}
 }
 
@@ -73,8 +73,8 @@ fn on_session_closed(user: &str) {
 
 fn mount_info_for(user: &str) -> (String, String, String) {
 	match user { 
-		"d" 	=> ("/home/d.bin".to_string(),     "/dev/mapper/".to_string().append(user), "/home/".to_string().append(user)),
-		_		=> ("/home/macos.vdi".to_string(), "/dev/mapper/".to_string().append(user), "/home/".to_string().append(user))
+		"d" 	=> ("/home/d.bin".to_string(),     "/dev/mapper/".to_string() + user, "/home/".to_string() + user),
+		_		=> ("/home/macos.vdi".to_string(), "/dev/mapper/".to_string() + user, "/home/".to_string() + user)
 	}
 }
 
@@ -82,8 +82,7 @@ fn mount_info_for(user: &str) -> (String, String, String) {
 */
 #[no_mangle]
 #[allow(unused_variable)]
-#[allow(visible_private_types)]
-pub fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8) -> c_int {
+pub fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
 	let user = pam::get_user(pamh).unwrap();
 	syslog::info(format!("pam_sm_open_session {}", user).as_slice());
 
@@ -91,7 +90,7 @@ pub fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv:
 	let saved_credentials = creds().iter().find(|& &(ref u, ref p)| { index+=1; u.eq(&user) });
 
 	match saved_credentials {
-		Some(tuple@&(_, ref password)) => {
+		Some(&(_, ref password)) => {
 			do_mount(user.as_slice(), (*password).as_slice());
 			creds().swap_remove(index);
 		},
@@ -102,8 +101,7 @@ pub fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv:
 
 #[no_mangle]
 #[allow(unused_variable)]
-#[allow(visible_private_types)]
-pub fn pam_sm_close_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8) -> c_int {
+pub fn pam_sm_close_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
 	on_session_closed(pam::get_user(pamh).unwrap().as_slice());
 	PAM_SUCCESS as c_int
 }
@@ -111,16 +109,14 @@ pub fn pam_sm_close_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv
 // PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv);
 #[no_mangle]
 #[allow(unused_variable)]
-#[allow(visible_private_types)]
-pub fn pam_sm_authenticate(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8) -> c_int {
+pub fn pam_sm_authenticate(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
 	on_login(pamh) as c_int
 }
 
 // PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv);
 #[no_mangle]
 #[allow(unused_variable)]
-#[allow(visible_private_types)]
-pub fn pam_sm_setcred(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *u8) -> c_int {
+pub fn pam_sm_setcred(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
 	// println!("pam_sm_setcred: hello from rust!!! {}", argc);
 	PAM_SUCCESS as c_int
 }

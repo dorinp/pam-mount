@@ -1,14 +1,17 @@
+extern crate libc;
+
 use libc::{c_int, c_char};
 use std::ptr::copy_nonoverlapping_memory;
 
 extern "C" {
  	// void openlog(const char *ident, int option, int facility);
- 	fn openlog(ident: *c_char, option: c_int, facility: c_int);
-	fn syslog(priority: c_int, format: *c_char);
+ 	fn openlog(ident: *const c_char, option: c_int, facility: c_int);
+	fn syslog(priority: c_int, format: *const c_char);
 	// fn closelog(); 
  }
 
 #[allow(non_camel_case_types)]
+#[allow(dead_code)]
 pub enum Severity {
   LOG_EMERG,
   LOG_ALERT,
@@ -21,6 +24,7 @@ pub enum Severity {
 }
 
 #[allow(non_camel_case_types)]
+#[allow(dead_code)]
 pub enum Facility {
   LOG_KERN = 0 << 3,
   LOG_USER = 1 << 3,
@@ -51,12 +55,10 @@ pub fn open_log(ident: &str, facility: Facility) {
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	];
 
-	ident.to_c_str().with_ref(|ident| {
-		unsafe { 
-			copy_nonoverlapping_memory::<i8>(buf.as_mut_ptr(), ident, 30-1);
-			openlog(buf.as_ptr(), 0, facility as c_int) 
-		}
-	})
+  unsafe { 
+    copy_nonoverlapping_memory::<i8>(buf.as_mut_ptr(), ident.to_c_str().as_ptr(), 30-1);
+    openlog(buf.as_ptr(), 0, facility as c_int) 
+  }
 }
 
 
@@ -77,9 +79,7 @@ pub fn info(msg: &str) {
 }
 
 pub fn log(msg: &str, severity: Severity) {
-	msg.to_c_str().with_ref(|msg| {
-		unsafe { syslog(severity as c_int, msg) }
-	});
+  unsafe { syslog(severity as c_int, msg.to_c_str().as_ptr()) }
 }
 
 #[allow(dead_code)]
