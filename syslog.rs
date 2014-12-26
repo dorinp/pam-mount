@@ -2,6 +2,8 @@ extern crate libc;
 
 use libc::{c_int, c_char};
 use std::ptr::copy_nonoverlapping_memory;
+use self::Severity::{LOG_NOTICE, LOG_ERR, LOG_WARNING, LOG_INFO};
+use self::Facility::{LOG_DAEMON};
 
 extern "C" {
  	// void openlog(const char *ident, int option, int facility);
@@ -12,6 +14,7 @@ extern "C" {
 
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
+#[deriving(PartialEq,Show,Copy)]
 pub enum Severity {
   LOG_EMERG,
   LOG_ALERT,
@@ -25,6 +28,7 @@ pub enum Severity {
 
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
+#[deriving(PartialEq,Show,Copy)]
 pub enum Facility {
   LOG_KERN = 0 << 3,
   LOG_USER = 1 << 3,

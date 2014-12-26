@@ -3,6 +3,8 @@ extern crate libc;
 use libc::{c_int, c_char};
 use std::ptr;
 use std::mem;
+use self::PamItemType::{PAM_AUTHTOK, PAM_USER};
+use self::PamResult::{PAM_SUCCESS};
 
 #[allow(non_camel_case_types)]
 pub type pam_handle_t = *const uint;
@@ -11,7 +13,7 @@ type c_str = *const c_char;
 
 #[repr(i32)]
 #[allow(non_camel_case_types)]
-#[deriving(PartialEq,Show)]
+#[deriving(PartialEq,Show,Copy)]
 #[allow(dead_code)]
 pub enum PamResult {
 	PAM_SUCCESS					= 0,
@@ -96,7 +98,7 @@ enum PamItemType {
 }
 
 #[link(name = "pam")]
-#[allow(ctypes)]
+#[allow(improper_ctypes)]
 extern "C" {
 	// int pam_get_item(const pam_handle_t *pamh, int item_type, const void **item);
 	fn pam_get_item(pamh: pam_handle_t, item_type: c_int, item: *mut c_str) -> c_int;
@@ -113,6 +115,32 @@ pub fn get_password(pamh: pam_handle_t) -> Result<String, String> {
 pub fn get_user(pamh: pam_handle_t) -> Result<String, String> {
 	get_item(pamh, PAM_USER)
 }
+
+fn get_item(pamh: pam_handle_t, item_type: PamItemType) -> Result<String, String> {
+	let mut info: c_str = ptr::null();
+	let r = unsafe { pam_get_item(pamh, item_type as c_int, &mut info) };
+
+	match PamResult::from_int(r) {
+		PAM_SUCCESS => ok_if_not_null(info),
+		e 			=> Err(e.to_string())
+	}
+}
+
+fn ok_if_not_null(info: c_str) -> Result<String, String> {
+	if info == ptr::null() { Err("the pointer is null".to_string()) } 
+	else {
+		let z = unsafe { ::std::c_str::CString::new(info, false) };
+		Ok(z.as_str().unwrap_or("").to_string())
+	}
+}
+
+#[allow(dead_code)]
+fn main() {
+	let r = PamResult::from_int(66 as c_int);
+	println!("{}", r);
+	println!("{}", PAM_USER as c_int);
+}
+
 
 /*pub fn setData(pamh: pam_handle_t, name: &str, data: &str) -> Result<int, String> {
 	let r = name.to_c_str().with_ref(|name| {
@@ -144,26 +172,3 @@ pub fn getData(pamh: pam_handle_t, name: &str) -> Result<String, String> {
 }
 
 */
-fn get_item(pamh: pam_handle_t, item_type: PamItemType) -> Result<String, String> {
-	let mut info: c_str = ptr::null();
-	let r = unsafe { pam_get_item(pamh, item_type as c_int, &mut info) };
-
-	match PamResult::from_int(r) {
-		PAM_SUCCESS => ok_if_not_null(info),
-		e 			=> Err(e.to_string())
-	}
-}
-
-fn ok_if_not_null(info: c_str) -> Result<String, String> {
-	if info == ptr::null() { Err("the pointer is null".to_string()) } 
-	else {
-		let z = unsafe { ::std::c_str::CString::new(info, false) };
-		Ok(z.as_str().unwrap_or("").to_string())
-	}
-}
-
-#[allow(dead_code)]
-fn main() {
-	let r: PamResult = PamResult::from_int(3 as c_int);
-	println!("{}", r)
-}

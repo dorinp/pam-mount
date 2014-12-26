@@ -7,7 +7,7 @@ use std::os::last_os_error;
 type libmnt_context = *const uint;
 
 #[link(name = "mount")]
-#[allow(ctypes)] 
+#[allow(improper_ctypes)] 
 extern "C" {
 	fn mnt_new_context() -> libmnt_context;
 	fn mnt_context_set_source(ctx: libmnt_context, source: *const c_char) -> c_int;
@@ -53,7 +53,7 @@ impl Context {
 	fn to_result(error_code: c_int) -> Result<int, String> {
 		match error_code {
 			0 => Ok(0),
-			_ => Err(error_code.to_string() + ": " + last_os_error())
+			_ => Err(format!("{}: {}", error_code, last_os_error()))
 		}
 	}
 

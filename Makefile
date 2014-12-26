@@ -1,5 +1,5 @@
-all: pam_mount.rs
-	rustc pam_mount.rs
+all: clean pam_mount.rs
+	rustc -O pam_mount.rs
 
 clean:
 	rm -f libpam*.so

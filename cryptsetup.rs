@@ -11,7 +11,7 @@ type crypt_device = uint;
 type p_cd = *const uint;
 
 static CRYPT_ANY_SLOT: c_int = -1;
-#[allow(ctypes)] 
+#[allow(improper_ctypes)] 
 #[link(name = "cryptsetup")]
 extern "C" {
 	// int crypt_init 	(struct crypt_device **cd, const char *device)
