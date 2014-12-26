@@ -4,7 +4,7 @@ extern crate libc;
 	
 use libc::{c_int, size_t};
 use pam::{pam_handle_t, PamResult};
-use singleton::Singleton;
+use singleton::{Singleton, VectorOfPairs};
 use cryptsetup::{CryptoMounter, ContainerFormat};
 use pam::PamResult::{PAM_SUCCESS};
 
@@ -14,18 +14,16 @@ mod cryptsetup;
 mod mount;
 mod syslog;
 
-type VectorOfPairs = Vec<(String, String)>;
-
-fn creds<'r>() -> &'r mut VectorOfPairs {
-	let z: &mut VectorOfPairs = Singleton::instance();
-	z
+fn creds<'a>() -> &'a mut VectorOfPairs {
+	Singleton::get()
 }
 
 fn on_login(pamh: pam_handle_t) -> PamResult {
 	match pam::get_password(pamh) {
 		Ok(pass) => {
-			// println!("pam_sm_authenticate: done {}", pass);
-			let user = pam::get_user(pamh).unwrap();
+			let u1 = pam::get_user(pamh);
+			syslog::info(format!("pam_sm_authenticate: user is: {}", u1).as_slice());
+			let user = u1.unwrap();
 			creds().push((user, pass));
 		},
 		Err(err) => syslog::err(format!("pam_sm_authenticate: unable to get credentials: {}", err).as_slice())
@@ -70,7 +68,6 @@ fn on_session_closed(user: &str) {
 		cm.lock()
 	});
 	log_if_error(r, "unable to unlock");
-
 }
 
 fn mount_info_for(user: &str) -> (String, String, String) {
