@@ -92,18 +92,23 @@ fn mount_info_for(user: &str) -> Option<(String, String, String)> {
 #[no_mangle]
 #[allow(unused_variables)]
 pub fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
-	let user = pam::get_user(pamh).unwrap();
-	syslog::info(format!("pam_sm_open_session {}", user).as_slice());
+	let r = pam::get_user(pamh);
+	if r.is_ok() {
+		let user = r.unwrap();
+		syslog::info(format!("pam_sm_open_session {}", user).as_slice());
 
-	let mut index = -1;
-	let saved_credentials = creds().iter().find(|& &(ref u, ref p)| { index+=1; u.eq(&user) });
+		let mut index = -1;
+		let saved_credentials = creds().iter().find(|& &(ref u, ref p)| { index+=1; u.eq(&user) });
 
-	match saved_credentials {
-		Some(&(_, ref password)) => {
-			do_mount(user.as_slice(), (*password).as_slice());
-			creds().swap_remove(index);
-		},
-		None => syslog::warn(format!("weird, nothing found for {}", user).as_slice())
+		match saved_credentials {
+			Some(&(_, ref password)) => {
+				do_mount(user.as_slice(), (*password).as_slice());
+				creds().swap_remove(index);
+			},
+			None => syslog::warn(format!("weird, nothing found for {}", user).as_slice())
+		}
+	} else {
+		syslog::err(format!("pam_sm_open_session: could not get user name: {}", r).as_slice());
 	}
 	PAM_SUCCESS as c_int
 }
