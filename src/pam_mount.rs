@@ -131,8 +131,5 @@ pub fn pam_sm_authenticate(pamh: pam_handle_t, flags: c_int, argc: size_t, argv:
 #[no_mangle]
 #[allow(unused_variables)]
 pub fn pam_sm_setcred(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
-	// println!("pam_sm_setcred: hello from rust!!! {}", argc);
 	PAM_SUCCESS as c_int
 }
-
-
