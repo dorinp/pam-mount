@@ -1,0 +1,13 @@
+[package]
+name = "pam_mount"
+version = "0.0.1"
+authors = ["Dorin Popa <dp@i51.org>"]
+
+[dependencies.mdo]
+git = "https://github.com/dorinp/rust-mdo"
+
+[lib]
+name = "pam_mount"
+crate-type = ["dylib"]
+test = true
+plugin = false

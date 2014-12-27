@@ -31,9 +31,6 @@ extern "C" {
 	fn crypt_free(cd: *const crypt_device);
 }	
 
-
-
-
 #[deriving(Show)]	
 #[allow(dead_code)]
 pub enum ContainerFormat {
@@ -95,13 +92,16 @@ impl Drop for CryptoMounter {
 	}
 }
 
-#[test]
-fn main() {
-	let cm = CryptoMounter::new("file.bin", LUKS1, "home").and_then(|cm|{
-		cm.unlock("preved")
-	});
-	println!("{}", cm);
+mod tests {
+	#[test]
+	#[allow(unused_must_use)]
+	fn the_test() {
+		use cryptsetup::{CryptoMounter, ContainerFormat};
+		let cm = CryptoMounter::new("file.bin", ContainerFormat::LUKS1, "home").and_then(|cm|{
+			cm.unlock("preved")
+		});
+		println!("{}", cm);
+		cm.unwrap().lock();
+	}	
 
-	cm.unwrap().lock();
-}	
-
+}

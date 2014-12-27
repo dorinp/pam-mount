@@ -1,7 +1,11 @@
 #![crate_name = "pam_mount"]
 #![crate_type = "dylib"]
+#![feature(phase)]
 extern crate libc;
 	
+#[phase(plugin, link)]
+extern crate mdo;
+
 use libc::{c_int, size_t};
 use pam::{pam_handle_t, PamResult};
 use singleton::{Singleton, VectorOfPairs};
