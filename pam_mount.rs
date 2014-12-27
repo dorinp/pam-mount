@@ -13,6 +13,7 @@ mod singleton;
 mod cryptsetup;
 mod mount;
 mod syslog;
+mod config;
 
 fn creds<'a>() -> &'a mut VectorOfPairs {
 	Singleton::get()
@@ -32,19 +33,22 @@ fn on_login(pamh: pam_handle_t) -> PamResult {
 }
 
 fn do_mount(user: &str, password: &str) {
-	let (container, dev, mountpoint) = mount_info_for(user);
+	match mount_info_for(user) {
+		Some((container, dev, mountpoint)) => {
+			syslog::info(format!("{}: unlocking  {}", user, container).as_slice());
+			let r = CryptoMounter::new(container.as_slice(), ContainerFormat::LUKS1, user)
+			.and_then(|cm|{
+				cm.unlock(password)
+			});
+			log_if_error(r, "unable to unlock");
 
-	syslog::info(format!("{}: unlocking  {}", user, container).as_slice());
-	let r = CryptoMounter::new(container.as_slice(), ContainerFormat::LUKS1, user)
-	.and_then(|cm|{
-		cm.unlock(password)
-	});
-	log_if_error(r, "unable to unlock");
-
-	syslog::info(format!("{}: mounting {} to {}", user, dev, mountpoint).as_slice());
-	let ctx = mount::Context::new(dev.as_slice(), mountpoint.as_slice());
-	let r = ctx.mount();
-	log_if_error(r, "unable to mount");
+			syslog::info(format!("{}: mounting {} to {}", user, dev, mountpoint).as_slice());
+			let ctx = mount::Context::new(dev.as_slice(), mountpoint.as_slice());
+			let r = ctx.mount();
+			log_if_error(r, "unable to mount");
+		},
+		None => ()
+	}
 }
 
 fn log_if_error<OK, E: ToString>(r: Result<OK, E>, message: &str) {
@@ -55,26 +59,28 @@ fn log_if_error<OK, E: ToString>(r: Result<OK, E>, message: &str) {
 }
 
 fn on_session_closed(user: &str) {
-	let (container, dev, mountpoint) = mount_info_for(user);
+	match mount_info_for(user) {
+		Some((container, dev, mountpoint)) => {
+			let ctx = mount::Context::new(dev.as_slice(), mountpoint.as_slice());
+			syslog::info(format!("umounting {}", dev).as_slice());
+			let r = ctx.umount();
+			log_if_error(r, "unable to unmount");
 
-	let ctx = mount::Context::new(dev.as_slice(), mountpoint.as_slice());
-	syslog::info(format!("umounting {}", dev).as_slice());
-	let r = ctx.umount();
-	log_if_error(r, "unable to unmount");
-
-	syslog::info(format!("{}: locking {}", user, container).as_slice());
-	let r = CryptoMounter::new(container.as_slice(), ContainerFormat::LUKS1, dev.as_slice())
-	.and_then(|cm|{
-		cm.lock()
-	});
-	log_if_error(r, "unable to unlock");
+			syslog::info(format!("{}: locking {}", user, container).as_slice());
+			let r = CryptoMounter::new(container.as_slice(), ContainerFormat::LUKS1, dev.as_slice())
+			.and_then(|cm|{
+				cm.lock()
+			});
+			log_if_error(r, "unable to unlock");
+		},
+		None => syslog::info(format!("no config found for user {}", user).as_slice())
+	}
 }
 
-fn mount_info_for(user: &str) -> (String, String, String) {
-	match user { 
-		"d" 	=> ("/home/d.bin".to_string(),     "/dev/mapper/".to_string() + user, "/home/".to_string() + user),
-		_		=> ("/home/macos.vdi".to_string(), "/dev/mapper/".to_string() + user, "/home/".to_string() + user)
-	}
+fn mount_info_for(user: &str) -> Option<(String, String, String)> {
+	config::container_for(user, "/etc/security/pam_mount.conf").map(|container| {
+		(container, format!("/dev/mapper/{}", user), format!("/home/{}", user))
+	})
 }
 
 /*PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, argc, argv);
