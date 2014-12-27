@@ -46,18 +46,18 @@ pub struct CryptoMounter {
 
 impl CryptoMounter {
 
-	pub fn new(container: &str, container_format: ContainerFormat, dm_name: &str) -> Result<Box<CryptoMounter>, int> {
+	pub fn new(container: &str, container_format: ContainerFormat, dm_name: &str) -> Result<CryptoMounter, int> {
 		let cd: *const crypt_device = ptr::null();
 
 		let r = unsafe {
 			crypt_init(&cd, container.to_c_str().as_ptr())
 		};
 
-		let cm = box CryptoMounter {cd: cd, dm_name: dm_name.to_string()};
+		let cm = CryptoMounter {cd: cd, dm_name: dm_name.to_string()};
 		if r == 0 { cm.load(container_format) } else {Err(r as int)}
 	}
 
-	fn load(self: Box<CryptoMounter>, container_format: ContainerFormat) -> Result<Box<CryptoMounter>, int> {
+	fn load(self: CryptoMounter, container_format: ContainerFormat) -> Result<CryptoMounter, int> {
 		let r = unsafe {
 			crypt_load(self.cd, container_format.to_string().to_c_str().as_ptr(), ptr::null())
 		};
@@ -65,7 +65,7 @@ impl CryptoMounter {
 		self.result(r)
 	}
 
-	pub fn unlock(self: Box<CryptoMounter>, password: &str) -> Result<Box<CryptoMounter>, int> {
+	pub fn unlock(self: CryptoMounter, password: &str) -> Result<CryptoMounter, int> {
 		let r =	unsafe {
 			crypt_activate_by_passphrase(self.cd, self.dm_name.to_c_str().as_ptr(), CRYPT_ANY_SLOT, 
 			password.to_c_str().as_ptr(), password.len() as size_t, 0)
@@ -74,14 +74,14 @@ impl CryptoMounter {
 		self.result(r)
 	}
 
-	pub fn lock(self: Box<CryptoMounter>) -> Result<Box<CryptoMounter>, int>  {
+	pub fn lock(self: CryptoMounter) -> Result<CryptoMounter, int>  {
 		let r = unsafe {
 			crypt_deactivate(self.cd, self.dm_name.to_c_str().as_ptr())
 		};
 		self.result(r)
 	}
 
-	fn result(self: Box<CryptoMounter>, r: c_int) -> Result<Box<CryptoMounter>, int> {
+	fn result(self: CryptoMounter, r: c_int) -> Result<CryptoMounter, int> {
 		if r == 0 {Ok(self) } else {Err(r as int)}	
 	}
 }
