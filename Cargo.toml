@@ -11,3 +11,9 @@ name = "pam_mount"
 crate-type = ["dylib"]
 test = true
 plugin = false
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = false

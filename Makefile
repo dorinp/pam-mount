@@ -1,8 +1,8 @@
-all: clean pam_mount.rs
-	rustc -O pam_mount.rs
+all: clean src/pam_mount.rs
+	cargo build --release
 
 clean:
-	rm -f libpam*.so
+	cargo clean
 
 install: all
-	sudo cp libpam*.so /lib/security/pam_mymount.so
+	sudo cp target/release/libpam_mount*.so /lib/security/pam_mymount.so
