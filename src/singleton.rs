@@ -12,7 +12,7 @@ impl Singleton {
 		unsafe {
 			if _data == ptr::null::<VectorOfPairs>() {
 				let vec: VectorOfPairs = Vec::with_capacity(10);
-				_data = transmute(box vec);
+				_data = transmute(Box::new(vec));
 			}
 			transmute(_data)
 		}

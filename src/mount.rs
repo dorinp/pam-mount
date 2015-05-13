@@ -1,10 +1,11 @@
 extern crate libc;
 #[allow(non_camel_case_types)] 
-use libc::{c_int, c_char};
-use std::os::last_os_error;
+use self::libc::{c_int, c_char};
+use std::io::Error;
+use std::ffi::CString;
 
 #[repr(C)]
-type libmnt_context = *const uint;
+type libmnt_context = *const usize;
 
 #[link(name = "mount")]
 #[allow(improper_ctypes)] 
@@ -37,27 +38,27 @@ impl Context {
 	pub fn new(source: &str, target: &str) -> Context {
 		let x = Context {ctx: unsafe { mnt_new_context() }};
 		unsafe { 
-			let r = mnt_context_set_source(x.ctx, source.to_c_str().as_ptr()) as int;
+			let r = mnt_context_set_source(x.ctx, CString::new(source).unwrap().as_ptr()) as isize;
 			assert_eq!(r, 0);
 
-			mnt_context_set_target(x.ctx, target.to_c_str().as_ptr());
+			mnt_context_set_target(x.ctx, CString::new(target).unwrap().as_ptr());
 			assert_eq!(r, 0);
 		};
 		x
 	}
 
-	pub fn mount(&self) -> Result<int, String> {
+	pub fn mount(&self) -> Result<isize, String> {
 		Context::to_result( unsafe { mnt_context_mount(self.ctx) })
 	}
 
-	fn to_result(error_code: c_int) -> Result<int, String> {
+	fn to_result(error_code: c_int) -> Result<isize, String> {
 		match error_code {
 			0 => Ok(0),
-			_ => Err(format!("{}: {}", error_code, last_os_error()))
+			_ => Err(format!("{}: {}", error_code, Error::last_os_error()))
 		}
 	}
 
-	pub fn umount(&self) -> Result<int, String> {
+	pub fn umount(&self) -> Result<isize, String> {
 		Context::to_result( unsafe { mnt_context_umount(self.ctx) })
 	}
 
@@ -84,7 +85,7 @@ impl Drop for Context {
 fn main() {
 
 	let ctx = Context::new("/dev/mapper/home", "/mnt");
-	println!("{}", ctx.mount());
+	println!("{:?}", ctx.mount());
 	let ctx = Context::new("/dev/mapper/home", "/mnt");
-	println!("{}", ctx.umount());
+	println!("{:?}", ctx.umount());
 }

@@ -1,19 +1,21 @@
 extern crate libc;
 
-use libc::{c_int, c_char};
+use self::libc::{c_int, c_char};
+use std::str;
 use std::ptr;
 use std::mem;
 use self::PamItemType::{PAM_AUTHTOK, PAM_USER};
 use self::PamResult::{PAM_SUCCESS};
+use std::ffi::CStr;
 
 #[allow(non_camel_case_types)]
-pub type pam_handle_t = *const uint;
+pub type pam_handle_t = *const usize;
 #[allow(non_camel_case_types)]
 type c_str = *const c_char;
 
 #[repr(i32)]
 #[allow(non_camel_case_types)]
-#[deriving(PartialEq,Show,Copy)]
+#[derive(PartialEq,Debug,Clone)]
 #[allow(dead_code)]
 pub enum PamResult {
 	PAM_SUCCESS					= 0,
@@ -122,22 +124,22 @@ fn get_item(pamh: pam_handle_t, item_type: PamItemType) -> Result<String, String
 
 	match PamResult::from_int(r) {
 		PAM_SUCCESS => ok_if_not_null(info),
-		e 			=> Err(e.to_string())
+		e 			=> Err(format!("{:?}", e))
 	}
 }
 
 fn ok_if_not_null(info: c_str) -> Result<String, String> {
 	if info == ptr::null() { Err("the pointer is null".to_string()) } 
 	else {
-		let z = unsafe { ::std::c_str::CString::new(info, false) };
-		Ok(z.as_str().unwrap_or("").to_string())
+		let z = unsafe { CStr::from_ptr(info) };
+		Ok(str::from_utf8(z.to_bytes()).unwrap_or("").to_string())
 	}
 }
 
 #[allow(dead_code)]
 fn main() {
 	let r = PamResult::from_int(66 as c_int);
-	println!("{}", r);
+	println!("{:?}", r);
 	println!("{}", PAM_USER as c_int);
 }
 

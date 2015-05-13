@@ -1,9 +1,10 @@
 extern crate libc;
 
-use libc::{c_int, c_char};
-use std::ptr::copy_nonoverlapping_memory;
+use self::libc::types::os::arch::c95::{c_int, c_char};
+use std::intrinsics::copy;
 use self::Severity::{LOG_NOTICE, LOG_ERR, LOG_WARNING, LOG_INFO};
 use self::Facility::{LOG_DAEMON};
+use std::ffi::CString;
 
 extern "C" {
  	// void openlog(const char *ident, int option, int facility);
@@ -14,7 +15,7 @@ extern "C" {
 
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
-#[deriving(PartialEq,Show,Copy)]
+#[derive(PartialEq,Debug,Clone)]
 pub enum Severity {
   LOG_EMERG,
   LOG_ALERT,
@@ -28,7 +29,7 @@ pub enum Severity {
 
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
-#[deriving(PartialEq,Show,Copy)]
+#[derive(PartialEq,Debug,Clone)]
 pub enum Facility {
   LOG_KERN = 0 << 3,
   LOG_USER = 1 << 3,
@@ -53,14 +54,14 @@ pub enum Facility {
 }
 
 pub fn open_log(ident: &str, facility: Facility) {
-	static mut buf: [i8, ..30] = [
+	static mut buf: [i8; 30] = [
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	];
 
   unsafe { 
-    copy_nonoverlapping_memory::<i8>(buf.as_mut_ptr(), ident.to_c_str().as_ptr(), 30-1);
+    copy::<i8>(CString::new(ident).unwrap().as_ptr(), buf.as_mut_ptr(), 30-1);
     openlog(buf.as_ptr(), 0, facility as c_int) 
   }
 }
@@ -83,7 +84,7 @@ pub fn info(msg: &str) {
 }
 
 pub fn log(msg: &str, severity: Severity) {
-  unsafe { syslog(severity as c_int, msg.to_c_str().as_ptr()) }
+  unsafe { syslog(severity as c_int, CString::new(msg).unwrap().as_ptr()) }
 }
 
 #[allow(dead_code)]

@@ -1,34 +1,24 @@
-use std::io::BufferedReader;
-use std::io::{File, IoResult};
+use std::io::BufReader;
+use std::io;
+use std::fs::File;
+use std::io::prelude::*;
 
-fn read(user: &str, file: &str) -> Option<(String)> {
-	use mdo::option::{bind, ret, mzero};
-	// use mdo::result::{bind, ret};
+fn read(user: &str, file: &str) -> io::Result<String> {
+	let f = try!(File::open(file));
 
-	// let l = mdo! {
- //        z <- File::open(&Path::new(file)).ok();
- //        line <- file.lines();
- //        ret ret(line.to_string())
- //    };
+	let file = BufReader::new(f);
+	let mut xx = file.lines().filter_map(|line|  {
+// if !line.unwrap().starts_with("#")
+        let u = line.unwrap();
+        let h = u.split_whitespace().collect::<Vec<&str>>();
+        if h.len() >= 2 && h[0]==user { Some(h[1].to_string()) } else { None }
+	});
 
-	let f: IoResult<File> = File::open(&Path::new(file));
-
-	if f.is_err() { None} else {
-		let mut file = BufferedReader::new(f);
-		file.lines().filter_map(|x| {
-			mdo! {
-		        line <- x.ok();
-		        when !(line.starts_with("#"));
-		        let h = line.words().collect::<Vec<&str>>();
-		        when h.len() >= 2 && h[0]==user;
-		        ret ret(h[1].to_string())
-		    }
-		}).next()
-	}
+    Ok(xx.next().unwrap())
 }
 
 pub fn container_for(user: &str, file: &str) -> Option<String> {
-	read(user, file)
+	read(user, file).ok()
 }
 
 #[cfg(test)]

@@ -1,14 +1,14 @@
 extern crate libc;
 #[allow(non_camel_case_types)] 
-
 use std::ptr;
-use std::io::{IoResult, IoError};
-use libc::{c_int, c_char, size_t, uint32_t};
+use std::io::{Result, Error};
+use self::libc::{c_int, c_char, size_t, uint32_t};
+use std::ffi::CString;
 
 #[allow(non_camel_case_types)]
-type crypt_device = uint;
+type crypt_device = usize;
 #[allow(non_camel_case_types)]
-type p_cd = *const uint;
+type p_cd = *const usize;
 
 static CRYPT_ANY_SLOT: c_int = -1;
 #[allow(improper_ctypes)] 
@@ -31,14 +31,14 @@ extern "C" {
 	fn crypt_free(cd: *const crypt_device);
 }	
 
-#[deriving(Show)]	
+#[derive(Debug)]	
 #[allow(dead_code)]
 pub enum ContainerFormat {
 	LOOPAES, LUKS1, PLAIN, TCRYPT
 }
 
-#[deriving(Show)]
-#[allow(raw_pointer_deriving)]
+#[derive(Debug)]
+#[allow(raw_pointer_derive)]
 pub struct CryptoMounter {
 	cd: *const crypt_device,
 	dm_name: String
@@ -46,43 +46,47 @@ pub struct CryptoMounter {
 
 impl CryptoMounter {
 
-	pub fn new(container: &str, container_format: ContainerFormat, dm_name: &str) -> IoResult<CryptoMounter> {
+	pub fn new(container: &str, container_format: ContainerFormat, dm_name: &str) -> Result<CryptoMounter> {
 		let cd: *const crypt_device = ptr::null();
 
 		let r = unsafe {
-			crypt_init(&cd, container.to_c_str().as_ptr()) as uint
+			crypt_init(&cd, CryptoMounter::to_ptr(container)) as usize
 		};
 
 		let cm = CryptoMounter {cd: cd, dm_name: dm_name.to_string()};
-		if r == 0 { cm.load(container_format) } else {Err(IoError::from_errno(r, true))}
+		if r == 0 { cm.load(container_format) } else {Err(Error::last_os_error())}
 	}
 
-	fn load(self: CryptoMounter, container_format: ContainerFormat) -> IoResult<CryptoMounter> {
+	fn load(self: CryptoMounter, container_format: ContainerFormat) -> Result<CryptoMounter> {
 		let r = unsafe {
-			crypt_load(self.cd, container_format.to_string().to_c_str().as_ptr(), ptr::null())
+			crypt_load(self.cd, CryptoMounter::to_ptr(format!("{:?}", container_format).as_str()), ptr::null())
 		};
 
 		self.result(r)
 	}
 
-	pub fn unlock(self: CryptoMounter, password: &str) -> IoResult<CryptoMounter> {
+	pub fn unlock(self: CryptoMounter, password: &str) -> Result<CryptoMounter> {
 		let r =	unsafe {
-			crypt_activate_by_passphrase(self.cd, self.dm_name.to_c_str().as_ptr(), CRYPT_ANY_SLOT, 
-			password.to_c_str().as_ptr(), password.len() as size_t, 0)
+			crypt_activate_by_passphrase(self.cd, CryptoMounter::to_ptr(self.dm_name.as_str()), CRYPT_ANY_SLOT, 
+			CryptoMounter::to_ptr(password), password.len() as size_t, 0)
 		};
 
 		self.result(r)
 	}
 
-	pub fn lock(self: CryptoMounter) -> IoResult<CryptoMounter>  {
+	pub fn lock(self: CryptoMounter) -> Result<CryptoMounter>  {
 		let r = unsafe {
-			crypt_deactivate(self.cd, self.dm_name.to_c_str().as_ptr())
+			crypt_deactivate(self.cd, CryptoMounter::to_ptr(self.dm_name.as_str()))
 		};
 		self.result(r)
 	}
 
-	fn result(self: CryptoMounter, r: c_int) -> IoResult<CryptoMounter> {
-		if r == 0 {Ok(self) } else {Err(IoError::from_errno(r as uint, true))}	
+	fn result(self: CryptoMounter, r: c_int) -> Result<CryptoMounter> {
+		if r == 0 {Ok(self) } else {Err(Error::last_os_error())}	
+	}
+
+	fn to_ptr(s: &str) -> *const c_char {
+		CString::new(s).unwrap().as_ptr()	
 	}
 }
 
