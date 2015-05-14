@@ -104,8 +104,8 @@ mod tests {
 		let cm = CryptoMounter::new("file.bin", ContainerFormat::LUKS1, "home").and_then(|cm|{
 			cm.unlock("preved")
 		});
-		println!("{}", cm);
-		cm.unwrap().lock();
+		println!("{:?}", cm);
+		// cm.unwrap().lock();
 	}	
 
 }

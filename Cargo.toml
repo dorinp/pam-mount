@@ -3,9 +3,6 @@ name = "pam_mount"
 version = "0.0.2"
 authors = ["Dorin Popa <dp@i51.org>"]
 
-#[dependencies.mdo]
-#git = "https://github.com/TeXitoi/rust-mdo"
-
 [lib]
 name = "pam_mount"
 crate-type = ["dylib"]
@@ -16,4 +13,4 @@ plugin = false
 opt-level = 3
 debug = false
 rpath = false
-lto = false
+lto = true
