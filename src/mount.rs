@@ -81,11 +81,11 @@ impl Drop for Context {
 
 
 
-#[allow(dead_code)]
+/*#[allow(dead_code)]
 fn main() {
 
 	let ctx = Context::new("/dev/mapper/home", "/mnt");
 	println!("{:?}", ctx.mount());
 	let ctx = Context::new("/dev/mapper/home", "/mnt");
 	println!("{:?}", ctx.umount());
-}
+}*/

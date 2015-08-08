@@ -129,18 +129,11 @@ fn get_item(pamh: pam_handle_t, item_type: PamItemType) -> Result<String, String
 }
 
 fn ok_if_not_null(info: c_str) -> Result<String, String> {
-	if info == ptr::null() { Err("the pointer is null".to_string()) } 
+	if info == ptr::null() { Err("the pointer is null".into()) } 
 	else {
 		let z = unsafe { CStr::from_ptr(info) };
-		Ok(str::from_utf8(z.to_bytes()).unwrap_or("").to_string())
+		Ok(str::from_utf8(z.to_bytes()).unwrap_or("").into())
 	}
-}
-
-#[allow(dead_code)]
-fn main() {
-	let r = PamResult::from_int(66 as c_int);
-	println!("{:?}", r);
-	println!("{}", PAM_USER as c_int);
 }
 
 

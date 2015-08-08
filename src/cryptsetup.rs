@@ -59,7 +59,7 @@ impl CryptoMounter {
 
 	fn load(self: CryptoMounter, container_format: ContainerFormat) -> Result<CryptoMounter> {
 		let r = unsafe {
-			crypt_load(self.cd, CryptoMounter::to_ptr(format!("{:?}", container_format).as_str()), ptr::null())
+			crypt_load(self.cd, CryptoMounter::to_ptr(&format!("{:?}", container_format)), ptr::null())
 		};
 
 		self.result(r)
@@ -67,7 +67,7 @@ impl CryptoMounter {
 
 	pub fn unlock(self: CryptoMounter, password: &str) -> Result<CryptoMounter> {
 		let r =	unsafe {
-			crypt_activate_by_passphrase(self.cd, CryptoMounter::to_ptr(self.dm_name.as_str()), CRYPT_ANY_SLOT, 
+			crypt_activate_by_passphrase(self.cd, CryptoMounter::to_ptr(&self.dm_name), CRYPT_ANY_SLOT, 
 			CryptoMounter::to_ptr(password), password.len() as size_t, 0)
 		};
 
@@ -76,7 +76,7 @@ impl CryptoMounter {
 
 	pub fn lock(self: CryptoMounter) -> Result<CryptoMounter>  {
 		let r = unsafe {
-			crypt_deactivate(self.cd, CryptoMounter::to_ptr(self.dm_name.as_str()))
+			crypt_deactivate(self.cd, CryptoMounter::to_ptr(&self.dm_name))
 		};
 		self.result(r)
 	}
