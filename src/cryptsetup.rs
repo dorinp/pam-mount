@@ -68,7 +68,7 @@ impl CryptoMounter {
 	pub fn unlock(self: CryptoMounter, password: &str) -> Result<CryptoMounter> {
 		let r =	unsafe {
 			crypt_activate_by_passphrase(self.cd, CryptoMounter::to_ptr(&self.dm_name), CRYPT_ANY_SLOT, 
-			CryptoMounter::to_ptr(password), password.len() as size_t, 0)
+				CryptoMounter::to_ptr(password), password.len() as size_t, 0)
 		};
 
 		self.result(r)

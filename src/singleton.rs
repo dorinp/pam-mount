@@ -1,6 +1,6 @@
 extern crate libc;
 use std::mem::transmute;
-use std::ptr;
+use std::sync::{Once, ONCE_INIT};
 
 pub struct Singleton;
 pub type VectorOfPairs = Vec<(String, String)>;
@@ -8,37 +8,16 @@ pub type VectorOfPairs = Vec<(String, String)>;
 impl Singleton {
 	pub fn get<'a>() -> &'a mut VectorOfPairs {
  		static mut _data:*const VectorOfPairs = 0 as *const VectorOfPairs;
-
+ 		static ONCE: Once = ONCE_INIT;
 		unsafe {
-			if _data == ptr::null::<VectorOfPairs>() {
+			ONCE.call_once(|| {
+	            // DATA = transmute::<Box<$T>, *const $T>(
+	            // Box::new(__static_ref_initialize()));
 				let vec: VectorOfPairs = Vec::with_capacity(10);
 				_data = transmute(Box::new(vec));
-			}
-			transmute(_data)
-		}
-	}
 
-/*	pub fn instance<'r>() -> &'r mut T {
-		static mut v: *mut c_void = 0 as *mut c_void;
-
-		unsafe {
-			if v as uint == 0 {
-				let x: *mut T = Singleton::new();
-				v = x as *mut c_void;
-			}		
-			mem::transmute(v)
-		}
+	        });
+	        transmute(_data)
+    	}
 	}
-	unsafe fn new() -> *mut T {
-	    let value: T = Default::default();
-
-		let ptr = malloc(::std::mem::size_of::<T>() as size_t) as *mut T;
-		assert!(!ptr.is_null());
-		// `*ptr` is uninitialized, and `*ptr = value` would attempt to destroy it
-		// move_val_init moves a value into this memory without
-		// attempting to drop the original value.
-		mem::replace(&mut *ptr, value);
-		ptr
-	}
-	*/
 }

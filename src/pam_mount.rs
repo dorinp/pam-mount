@@ -37,11 +37,8 @@ fn on_login(pamh: pam_handle_t) -> PamResult {
 fn do_mount(user: &str, password: &str) {
 	match mount_info_for(user) {
 		Some((container, dev, mountpoint)) => {
-			syslog::info(&format!("{}: unlocking  {}", user, container));
-			let r = CryptoMounter::new(&container, ContainerFormat::LUKS1, user)
-			.and_then(|cm|{
-				cm.unlock(password)
-			});
+			syslog::info(&format!("{}: unlocking  {} to {}", user, container, dev));
+			let r = CryptoMounter::new(&container, ContainerFormat::LUKS1, user).and_then(|cm| 	cm.unlock(password));
 			log_if_error(r, "unable to unlock");
 
 			syslog::info(&format!("{}: mounting {} to {}", user, dev, mountpoint));
@@ -95,13 +92,12 @@ pub fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv:
 		let user = r.unwrap();
 		syslog::info(&format!("pam_sm_open_session {}", user));
 
-		let mut index = -1;
-		let saved_credentials = creds().iter().find(|& &(ref u, ref p)| { index+=1; u.eq(&user) });
+		let maybe_index = creds().iter().position(|&(ref u, _)| u.eq(&user) );
 
-		match saved_credentials {
-			Some(&(_, ref password)) => {
-				do_mount(&user, &(*password));
-				creds().swap_remove(index);
+		match maybe_index {
+			Some(index) => {
+				let (usr, password) = creds().swap_remove(index);
+				do_mount(&usr, &password);
 			},
 			None => syslog::warn(&format!("weird, nothing found for {}", user))
 		}
