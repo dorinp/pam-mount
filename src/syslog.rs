@@ -1,6 +1,6 @@
 extern crate libc;
 
-use self::libc::types::os::arch::c95::{c_int, c_char};
+use self::libc::{c_int, c_char};
 use std::intrinsics::copy;
 use self::Severity::{LOG_NOTICE, LOG_ERR, LOG_WARNING, LOG_INFO};
 use self::Facility::{LOG_DAEMON};

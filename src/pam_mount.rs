@@ -7,7 +7,7 @@ extern crate libc;
 use self::libc::{c_int, size_t};
 use pam::{pam_handle_t, PamResult};
 use singleton::{Singleton, VectorOfPairs};
-use cryptsetup::{CryptoMounter, ContainerFormat};
+use cryptsetup::CryptoMounter;
 use pam::PamResult::{PAM_SUCCESS};
 
 mod pam;
@@ -38,22 +38,22 @@ fn do_mount(user: &str, password: &str) {
 	match mount_info_for(user) {
 		Some((container, dev, mountpoint)) => {
 			syslog::info(&format!("{}: unlocking  {} to {}", user, container, dev));
-			let r = CryptoMounter::new(&container, ContainerFormat::LUKS1, user).and_then(|cm| 	cm.unlock(password));
-			log_if_error(r, "unable to unlock");
+			let r = CryptoMounter::new(&container, user).and_then(|cm| cm.unlock(password));
+			log_if_error(&r, "unable to unlock");
 
 			syslog::info(&format!("{}: mounting {} to {}", user, dev, mountpoint));
 			let ctx = mount::Context::new(&dev, &mountpoint);
 			let r = ctx.mount();
-			log_if_error(r, "unable to mount");
+			log_if_error(&r, "unable to mount");
 		},
 		None => ()
 	}
 }
 
-fn log_if_error<OK, E: ToString>(r: Result<OK, E>, message: &str) {
-	match r {
+fn log_if_error<OK, E: ToString>(r: &Result<OK, E>, message: &str) {
+	match *r {
 		Ok(_) => (),
-		Err(err) => syslog::err(&format!("{}: {}", message, err.to_string()))
+		Err(ref err) => syslog::err(&format!("{}: {}", message, err.to_string()))
 	}
 }
 
@@ -63,14 +63,14 @@ fn on_session_closed(user: &str) {
 			let ctx = mount::Context::new(&dev, &mountpoint);
 			syslog::info(&format!("umounting {}", dev));
 			let r = ctx.umount();
-			log_if_error(r, "unable to unmount");
+			log_if_error(&r, "unable to unmount");
 
 			syslog::info(&format!("{}: locking {}", user, container));
-			let r = CryptoMounter::new(&container, ContainerFormat::LUKS1, &dev)
+			let r = CryptoMounter::new(&container, &dev)
 			.and_then(|cm|{
 				cm.lock()
 			});
-			log_if_error(r, "unable to unlock");
+			log_if_error(&r, "unable to unlock");
 		},
 		None => syslog::info(&format!("no config found for user {}", user))
 	}
