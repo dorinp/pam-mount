@@ -39,7 +39,6 @@ pub enum ContainerFormat {
 }
 
 #[derive(Debug)]
-#[allow(raw_pointer_derive)]
 pub struct CryptoMounter {
 	cd: *const crypt_device,
 	dm_name: String

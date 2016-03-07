@@ -1,6 +1,5 @@
 #![crate_name = "pam_mount"]
 #![crate_type = "dylib"]
-//#![feature(no_std)]
 //#![no_std]
 extern crate libc;
 	

@@ -1,6 +1,6 @@
 all: clean src/pam_mount.rs
 	cargo build --release
-	strip --strip-all target/release/libpam_mount.so
+	sstrip  target/release/libpam_mount.so
 
 clean:
 	cargo clean

@@ -1,12 +1,12 @@
 [package]
 name = "pam_mount"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Dorin Popa <dp@i51.org>"]
 
 [lib]
 name = "pam_mount"
 crate-type = ["dylib"]
-test = true
+#test = true
 plugin = false
 
 [dependencies]
