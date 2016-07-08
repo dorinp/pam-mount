@@ -1,5 +1,5 @@
 #![crate_name = "pam_mount"]
-#![crate_type = "dylib"]
+#![crate_type = "cdylib"]
 //#![no_std]
 extern crate libc;
 	
@@ -85,7 +85,7 @@ fn mount_info_for(user: &str) -> Option<(String, String, String)> {
 */
 #[no_mangle]
 #[allow(unused_variables)]
-pub fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
+pub extern fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
 	let r = pam::get_user(pamh);
 	if r.is_ok() {
 		let user = r.unwrap();
@@ -108,7 +108,7 @@ pub fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv:
 
 #[no_mangle]
 #[allow(unused_variables)]
-pub fn pam_sm_close_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
+pub extern fn pam_sm_close_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
 	on_session_closed(&pam::get_user(pamh).unwrap());
 	PAM_SUCCESS as c_int
 }
@@ -116,13 +116,13 @@ pub fn pam_sm_close_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv
 // PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv);
 #[no_mangle]
 #[allow(unused_variables)]
-pub fn pam_sm_authenticate(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
+pub extern fn pam_sm_authenticate(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
 	on_login(pamh) as c_int
 }
 
 // PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv);
 #[no_mangle]
 #[allow(unused_variables)]
-pub fn pam_sm_setcred(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
+pub extern fn pam_sm_setcred(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
 	PAM_SUCCESS as c_int
 }

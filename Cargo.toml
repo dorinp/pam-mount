@@ -1,11 +1,11 @@
 [package]
 name = "pam_mount"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Dorin Popa <dp@i51.org>"]
 
 [lib]
 name = "pam_mount"
-crate-type = ["dylib"]
+crate-type = ["cdylib"]
 #test = true
 plugin = false
 
@@ -13,7 +13,9 @@ plugin = false
 libc = "*"
 
 [profile.release]
-opt-level = 3
+opt-level = 2
 debug = false
 rpath = false
+debug-assertions = false
 lto = true
+panic = 'abort'

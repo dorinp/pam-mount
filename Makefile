@@ -1,9 +1,12 @@
 all: clean src/pam_mount.rs
 	cargo build --release
-	sstrip  target/release/libpam_mount.so
 
 clean:
 	cargo clean
 
-install: all
+strip:
+	strip  target/release/libpam_mount.so
+# sstrip
+
+install: all strip
 	sudo cp target/release/libpam_mount*.so /lib/security/pam_mymount.so
