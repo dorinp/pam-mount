@@ -1,6 +1,4 @@
-extern crate libc;
-#[allow(non_camel_case_types)]
-use self::libc::{c_int, c_char};
+use libc::{c_int, c_char};
 use std::io::Error;
 use std::ffi::CString;
 

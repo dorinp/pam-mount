@@ -1,4 +1,3 @@
-extern crate libc;
 use std::mem::transmute;
 use std::sync::{Once, ONCE_INIT};
 

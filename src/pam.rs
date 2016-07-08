@@ -1,6 +1,4 @@
-extern crate libc;
-
-use self::libc::{c_int, c_char};
+use libc::{c_int, c_str};
 use std::str;
 use std::ptr;
 use std::mem;
@@ -10,8 +8,7 @@ use std::ffi::CStr;
 
 #[allow(non_camel_case_types)]
 pub type pam_handle_t = *const usize;
-#[allow(non_camel_case_types)]
-type c_str = *const c_char;
+
 
 #[repr(i32)]
 #[allow(non_camel_case_types)]

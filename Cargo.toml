@@ -9,8 +9,8 @@ crate-type = ["cdylib"]
 #test = true
 plugin = false
 
-[dependencies]
-libc = "*"
+# [dependencies]
+# libc = "*"
 
 [profile.release]
 opt-level = 2
