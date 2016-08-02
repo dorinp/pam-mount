@@ -1,6 +1,6 @@
 [package]
 name = "pam_mount"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["Dorin Popa <dp@i51.org>"]
 
 [lib]

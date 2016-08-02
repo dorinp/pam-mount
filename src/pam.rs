@@ -75,6 +75,8 @@ impl PamResult {
     }
 }
 
+#[repr(i32)]
+#[derive(PartialEq,Debug,Copy,Clone)]
 #[allow(dead_code)]
 enum PamItemType {
     PAM_SERVICE = 1, // The service name
@@ -119,7 +121,7 @@ fn get_item(pamh: pam_handle_t, item_type: PamItemType) -> Result<String, String
 
     match PamResult::from_int(r) {
         PAM_SUCCESS => ok_if_not_null(info),
-        e => Err(format!("{:?}", e)),
+        e => Err(format!("get {:?}: {:?}", item_type, e)),
     }
 }
 

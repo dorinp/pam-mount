@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 
 use std::ptr;
-use std::io::{Result, Error};
+use std::io::Error;
 use libc::{c_int, c_char, size_t, uint32_t};
 use std::ffi::CString;
 
@@ -54,7 +54,7 @@ fn to_cstr(s: &str) -> CString {
 }
 
 impl CryptoMounter {
-    pub fn new(container: &str, dm_name: &str) -> Result<Self> {
+    pub fn new(container: &str, dm_name: &str) -> Result<Self, String> {
         let cd: *const crypt_device = ptr::null();
 
         let r = unsafe { crypt_init(&cd, to_cstr(container).as_ptr()) };
@@ -67,16 +67,16 @@ impl CryptoMounter {
 
             cm.load()
         } else {
-            Err(Error::from_raw_os_error(r))
+            Err(format!("{:?}", Error::from_raw_os_error(r)))
         }
     }
 
-    fn load(self: Self) -> Result<Self> {
+    fn load(self: Self) -> Result<Self, String> {
         let r = unsafe { crypt_load(self.cd, ptr::null(), ptr::null()) };
         self.result(r)
     }
 
-    pub fn unlock(self: Self, password: &str) -> Result<Self> {
+    pub fn unlock(self: Self, password: &str) -> Result<Self, String> {
         static CRYPT_ANY_SLOT: c_int = -1;
         let r = unsafe {
             crypt_activate_by_passphrase(self.cd,
@@ -89,16 +89,16 @@ impl CryptoMounter {
         self.result(r)
     }
 
-    pub fn lock(self: Self) -> Result<Self> {
+    pub fn lock(self: Self) -> Result<Self, String> {
         let r = unsafe { crypt_deactivate(self.cd, to_cstr(&self.dm_name).as_ptr()) };
         self.result(r)
     }
 
-    fn result(self: Self, r: c_int) -> Result<Self> {
+    fn result(self: Self, r: c_int) -> Result<Self, String> {
         if r == 0 {
             Ok(self)
         } else {
-            Err(Error::from_raw_os_error(-r))
+            Err(format!("{:?}", Error::from_raw_os_error(r)))
         }
     }
 }
