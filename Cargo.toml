@@ -4,13 +4,9 @@ version = "0.0.5"
 authors = ["Dorin Popa <dp@i51.org>"]
 
 [lib]
-name = "pam_mount"
 crate-type = ["cdylib"]
 #test = true
 plugin = false
-
-# [dependencies]
-# libc = "*"
 
 [profile.release]
 opt-level = 2

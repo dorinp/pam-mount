@@ -1,24 +1,20 @@
+#![allow(non_camel_case_types)]
+
 use std::ptr;
 use std::io::{Result, Error};
 use libc::{c_int, c_char, size_t, uint32_t};
 use std::ffi::CString;
 
-#[allow(non_camel_case_types)]
 type crypt_device = usize;
-#[allow(non_camel_case_types)]
 type p_cd = *const usize;
 
-static CRYPT_ANY_SLOT: c_int = -1;
 #[allow(improper_ctypes)]
 #[link(name = "cryptsetup")]
 extern "C" {
     // int crypt_init 	(struct crypt_device **cd, const char *device)
     fn crypt_init(cd: *const p_cd, device: *const c_char) -> c_int;
     // int crypt_load(struct crypt_device *cd, const char *requested_type, void *params )
-    fn crypt_load(cd: *const crypt_device,
-                  requested_type: *const c_char,
-                  params: *const c_char)
-                  -> c_int;
+    fn crypt_load(cd: *const crypt_device, requested_type: *const c_char, params: *const c_char) -> c_int;
 
     // int crypt_activate_by_passphrase(struct crypt_device *cd,
     // const char *name, int keyslot, const char *passphrase,
@@ -61,16 +57,14 @@ impl CryptoMounter {
     pub fn new(container: &str, dm_name: &str) -> Result<Self> {
         let cd: *const crypt_device = ptr::null();
 
-        let r = unsafe {
-            // crypt_set_debug_level(-1);
-            crypt_init(&cd, to_cstr(container).as_ptr())
-        };
+        let r = unsafe { crypt_init(&cd, to_cstr(container).as_ptr()) };
 
-        let cm = CryptoMounter {
-            cd: cd,
-            dm_name: dm_name.to_owned(),
-        };
         if r == 0 {
+            let cm = CryptoMounter {
+                cd: cd,
+                dm_name: dm_name.to_owned(),
+            };
+
             cm.load()
         } else {
             Err(Error::from_raw_os_error(r))
@@ -83,6 +77,7 @@ impl CryptoMounter {
     }
 
     pub fn unlock(self: Self, password: &str) -> Result<Self> {
+        static CRYPT_ANY_SLOT: c_int = -1;
         let r = unsafe {
             crypt_activate_by_passphrase(self.cd,
                                          to_cstr(&self.dm_name[..]).as_ptr(),

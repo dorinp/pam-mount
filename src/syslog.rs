@@ -1,15 +1,21 @@
-use libc::{c_int, c_char};
-use std::intrinsics::copy;
-use self::Severity::{LOG_NOTICE, LOG_ERR, LOG_WARNING, LOG_INFO};
-use self::Facility::LOG_DAEMON;
+use libc::{c_int, pam_handle_t, c_str};
+use self::Severity::{LOG_ERR, LOG_WARNING, LOG_INFO};
 use std::ffi::CString;
 
+// extern "C" {
+//     // void openlog(const char *ident, int option, int facility);
+//     fn openlog(ident: *const c_char, option: c_int, facility: c_int);
+//     fn syslog(priority: c_int, format: *const c_char);
+// // fn closelog();
+// }
+
+#[link(name = "pam")]
+// #[allow(improper_ctypes)]
 extern "C" {
-    // void openlog(const char *ident, int option, int facility);
-    fn openlog(ident: *const c_char, option: c_int, facility: c_int);
-    fn syslog(priority: c_int, format: *const c_char);
-// fn closelog();
+    // void pam_syslog(pam_handle_t *pamh, int priority, const char *fmt, ...);
+    fn pam_syslog(pamh: pam_handle_t, priority: c_int, fmt: c_str, ...);
 }
+
 
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
@@ -51,42 +57,35 @@ pub enum Facility {
     LOG_LOCAL7 = 23 << 3,
 }
 
-pub fn open_log(ident: &str, facility: Facility) {
-    static mut buf: [i8; 30] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                0, 0, 0, 0, 0, 0, 0, 0];
+// pub fn open_log(ident: &str, facility: Facility) {
+//     static mut buf: [i8; 30] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//                                 0, 0, 0, 0, 0, 0, 0, 0];
+//
+//     unsafe {
+//         copy::<i8>(CString::new(ident).unwrap().as_ptr(),
+//                    buf.as_mut_ptr(),
+//                    30 - 1);
+//         openlog(buf.as_ptr(), 0, facility as c_int)
+//     }
+// }
 
-    unsafe {
-        copy::<i8>(CString::new(ident).unwrap().as_ptr(),
-                   buf.as_mut_ptr(),
-                   30 - 1);
-        openlog(buf.as_ptr(), 0, facility as c_int)
-    }
+
+// pub fn notice(pamh: pam_handle_t, msg: &str) {
+//     log(pamh, msg, LOG_NOTICE);
+// }
+
+pub fn err(pamh: pam_handle_t, msg: &str) {
+    log(pamh, LOG_ERR, msg);
 }
 
-
-pub fn notice(msg: &str) {
-    log(msg, LOG_NOTICE);
+pub fn warn(pamh: pam_handle_t, msg: &str) {
+    log(pamh, LOG_WARNING, msg);
 }
 
-pub fn err(msg: &str) {
-    log(msg, LOG_ERR);
+pub fn info(pamh: pam_handle_t, msg: &str) {
+    log(pamh, LOG_INFO, msg);
 }
 
-pub fn warn(msg: &str) {
-    log(msg, LOG_WARNING);
-}
-
-pub fn info(msg: &str) {
-    log(msg, LOG_INFO);
-}
-
-pub fn log(msg: &str, severity: Severity) {
-    unsafe { syslog(severity as c_int, CString::new(msg).unwrap().as_ptr()) }
-}
-
-#[allow(dead_code)]
-fn main() {
-    open_log("yoo", LOG_DAEMON);
-    log("preved", LOG_NOTICE);
-    notice("brynza");
+pub fn log(pamh: pam_handle_t, severity: Severity, msg: &str) {
+    unsafe { pam_syslog(pamh, severity as c_int, CString::new(msg).unwrap().as_ptr()) }
 }

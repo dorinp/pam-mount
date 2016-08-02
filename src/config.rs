@@ -4,8 +4,9 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{Error, ErrorKind};
 use syslog;
+use libc::pam_handle_t;
 
-fn read(user: &str, file: &str) -> io::Result<String> {
+fn read(pamh: pam_handle_t, user: &str, file: &str) -> io::Result<String> {
     let f = try!(File::open(file));
     let file = BufReader::new(f);
     let mut xx = file.lines().filter_map(|l| {
@@ -23,7 +24,7 @@ fn read(user: &str, file: &str) -> io::Result<String> {
                 }
             }
             Err(e) => {
-                syslog::err(&format!("{}", e));
+                syslog::err(pamh, &format!("{}", e));
                 None
             }
         }
@@ -32,8 +33,8 @@ fn read(user: &str, file: &str) -> io::Result<String> {
     xx.next().ok_or(Error::new(ErrorKind::Other, "oh no!"))
 }
 
-pub fn container_for(user: &str, file: &str) -> Option<String> {
-    read(user, file).ok()
+pub fn container_for(pamh: pam_handle_t, user: &str, file: &str) -> Option<String> {
+    read(pamh, user, file).ok()
 }
 
 #[cfg(test)]

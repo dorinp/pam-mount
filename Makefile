@@ -1,4 +1,4 @@
-all: src/pam_mount.rs
+all:
 	cargo build --release
 
 clean:

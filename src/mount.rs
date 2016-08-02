@@ -36,10 +36,10 @@ impl Context {
     pub fn new(source: &str, target: &str) -> Context {
         let x = Context { ctx: unsafe { mnt_new_context() } };
         unsafe {
-            let r = mnt_context_set_source(x.ctx, CString::new(source).unwrap().as_ptr()) as isize;
+            let r = mnt_context_set_source(x.ctx, CString::new(source).unwrap_or(CString::default()).as_ptr()) as isize;
             assert_eq!(r, 0);
 
-            mnt_context_set_target(x.ctx, CString::new(target).unwrap().as_ptr());
+            mnt_context_set_target(x.ctx, CString::new(target).unwrap_or(CString::default()).as_ptr());
             assert_eq!(r, 0);
         };
         x

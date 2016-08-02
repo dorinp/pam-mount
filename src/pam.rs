@@ -1,4 +1,6 @@
-use libc::{c_int, c_str};
+#![allow(non_camel_case_types)]
+
+use libc::{c_int, c_str, pam_handle_t};
 use std::str;
 use std::ptr;
 use std::mem;
@@ -6,12 +8,7 @@ use self::PamItemType::{PAM_AUTHTOK, PAM_USER};
 use self::PamResult::PAM_SUCCESS;
 use std::ffi::CStr;
 
-#[allow(non_camel_case_types)]
-pub type pam_handle_t = *const usize;
-
-
 #[repr(i32)]
-#[allow(non_camel_case_types)]
 #[derive(PartialEq,Debug,Clone)]
 #[allow(dead_code)]
 pub enum PamResult {
@@ -78,7 +75,6 @@ impl PamResult {
     }
 }
 
-#[allow(non_camel_case_types)]
 #[allow(dead_code)]
 enum PamItemType {
     PAM_SERVICE = 1, // The service name
@@ -107,10 +103,12 @@ extern "C" {
 // fn pam_get_data(pamh: pam_handle_t, module_data_name: c_str, data: *mut c_str) -> c_int;
 }
 
+#[inline]
 pub fn get_password(pamh: pam_handle_t) -> Result<String, String> {
     get_item(pamh, PAM_AUTHTOK)
 }
 
+#[inline]
 pub fn get_user(pamh: pam_handle_t) -> Result<String, String> {
     get_item(pamh, PAM_USER)
 }
@@ -133,35 +131,3 @@ fn ok_if_not_null(info: c_str) -> Result<String, String> {
         Ok(str::from_utf8(z.to_bytes()).unwrap_or("").into())
     }
 }
-
-
-// pub fn setData(pamh: pam_handle_t, name: &str, data: &str) -> Result<int, String> {
-// let r = name.to_c_str().with_ref(|name| {
-// data.to_c_str().with_ref(|data| {
-// println!("set data: {}", data);
-// unsafe { pam_set_data(pamh, name, data, ptr::null()) }
-// })
-// });
-//
-// match PamResult::from_int(r) {
-// PAM_SUCCESS => Ok(0),
-// e 			=> Err(e.to_str())
-// }
-// }
-//
-//
-// pub fn getData(pamh: pam_handle_t, name: &str) -> Result<String, String> {
-// let mut info: c_str = ptr::null();
-//
-// let r = name.to_c_str().with_ref(|name| {
-// unsafe { pam_get_data(pamh, name, &mut info) }
-// });
-//
-// println!("get data: {}", info);
-// match PamResult::from_int(r) {
-// PAM_SUCCESS => ok_if_not_null(info),
-// e 			=> Err(e.to_str())
-// }
-// }
-//
-//
