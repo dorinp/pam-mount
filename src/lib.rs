@@ -2,7 +2,6 @@
 #![feature(start)]
 
 use libc::{c_int, size_t, pam_handle_t};
-use std::io;
 use pam::PamResult;
 use cryptsetup::CryptoMounter;
 use pam::PamResult::PAM_SUCCESS;
@@ -30,14 +29,10 @@ fn on_login(pamh: pam_handle_t) -> Result<PamResult, String> {
 }
 
 fn on_session_closed(user: &str) -> Result<(), String> {
-    match mount_info_for(user) {
-        Ok((container, dev, mountpoint)) => {
-            try!(mount::Context::new(&dev, &mountpoint).umount());
-            let cm = try!(CryptoMounter::new(&container, &dev));
-            cm.lock().map(|_| ())
-        }
-        Err(e) => Err(format!("no config found for user {}: {:?}", user, e)),
-    }
+    let (container, dev, mountpoint) = try!(mount_info_for(user));
+    try!(mount::Context::new(&dev, &mountpoint).umount());
+    let cm = try!(CryptoMounter::new(&container, &dev));
+    cm.lock().map(|_| ())
 }
 
 fn on_session_open(pamh: pam_handle_t) -> Result<String, String> {
@@ -50,19 +45,15 @@ fn on_session_open(pamh: pam_handle_t) -> Result<String, String> {
     }
 
     fn do_mount(user: &str, password: &str) -> Result<String, String> {
-        match mount_info_for(user) {
-            Ok((container, dev, mountpoint)) => {
-                try!(CryptoMounter::new(&container, user)
-                    .and_then(|cm| cm.unlock(password))
-                    .map_err(|r| format!("{}: unable to unlock {} - {}", user, dev, r)));
+        let (container, dev, mountpoint) = try!(mount_info_for(user));
+        try!(CryptoMounter::new(&container, user)
+            .and_then(|cm| cm.unlock(password))
+            .map_err(|r| format!("{}: unable to unlock {} - {}", user, dev, r)));
 
-                mount::Context::new(&dev, &mountpoint)
-                    .mount()
-                    .map_err(|r| format!("{}: unable to mount {} to {} - {}", user, dev, mountpoint, r))
-                    .map(|_| "".to_owned())
-            }
-            Err(e) => Err(format!("{:?}", e)),
-        }
+        mount::Context::new(&dev, &mountpoint)
+            .mount()
+            .map_err(|r| format!("{}: unable to mount {} to {} - {}", user, dev, mountpoint, r))
+            .map(|_| "".to_owned())
     }
 
     let user = try!(pam::get_user(pamh));
@@ -77,7 +68,6 @@ fn on_session_open(pamh: pam_handle_t) -> Result<String, String> {
 pub extern "C" fn pam_sm_open_session(pamh: pam_handle_t, flags: c_int, argc: size_t, argv: *const u8) -> c_int {
     log_errors(pamh, on_session_open(pamh))
 }
-
 
 #[no_mangle]
 #[allow(unused_variables)]
@@ -99,7 +89,7 @@ pub extern "C" fn pam_sm_setcred(pamh: pam_handle_t, flags: c_int, argc: size_t,
     PAM_SUCCESS as c_int
 }
 
-fn mount_info_for(user: &str) -> io::Result<(String, String, String)> {
+fn mount_info_for(user: &str) -> Result<(String, String, String), String> {
     config::container_for(user, "/etc/security/pam_mount.conf")
         .map(|container| (container, format!("/dev/mapper/{}", user), format!("/home/{}", user)))
 }

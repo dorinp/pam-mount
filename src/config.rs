@@ -1,11 +1,9 @@
 use std::io::BufReader;
-use std::io;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{Error, ErrorKind};
 
-fn read(user: &str, file: &str) -> io::Result<String> {
-    let f = try!(File::open(file));
+fn read(user: &str, file: &str) -> Result<String, String> {
+    let f = try!(File::open(file).map_err(|ref e| e.to_string()));
     let file = BufReader::new(f);
 
     let mut config_for_user = file.lines().filter_map(|l| {
@@ -22,10 +20,10 @@ fn read(user: &str, file: &str) -> io::Result<String> {
         }
     });
 
-    config_for_user.next().ok_or(Error::new(ErrorKind::Other, "oh no!"))
+    config_for_user.next().ok_or(format!("Could not find config for {}", user))
 }
 
-pub fn container_for(user: &str, file: &str) -> io::Result<String> {
+pub fn container_for(user: &str, file: &str) -> Result<String, String> {
     read(user, file)
 }
 
