@@ -3,38 +3,30 @@ use std::io;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{Error, ErrorKind};
-use syslog;
-use libc::pam_handle_t;
 
-fn read(pamh: pam_handle_t, user: &str, file: &str) -> io::Result<String> {
+fn read(user: &str, file: &str) -> io::Result<String> {
     let f = try!(File::open(file));
     let file = BufReader::new(f);
-    let mut xx = file.lines().filter_map(|l| {
-        match l {
-            Ok(line) => {
-                if !line.starts_with("#") {
-                    let h = line.split_whitespace().collect::<Vec<&str>>();
-                    if h.len() >= 2 && h[0] == user {
-                        Some(h[1].into())
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }
-            Err(e) => {
-                syslog::err(pamh, &format!("{}", e));
+
+    let mut config_for_user = file.lines().filter_map(|l| {
+        let line = l.unwrap_or("###".to_owned());
+        if !line.starts_with("#") {
+            let h = line.split_whitespace().collect::<Vec<&str>>();
+            if h.len() >= 2 && h[0] == user {
+                Some(h[1].into())
+            } else {
                 None
             }
+        } else {
+            None
         }
     });
 
-    xx.next().ok_or(Error::new(ErrorKind::Other, "oh no!"))
+    config_for_user.next().ok_or(Error::new(ErrorKind::Other, "oh no!"))
 }
 
-pub fn container_for(pamh: pam_handle_t, user: &str, file: &str) -> Option<String> {
-    read(pamh, user, file).ok()
+pub fn container_for(user: &str, file: &str) -> io::Result<String> {
+    read(user, file)
 }
 
 #[cfg(test)]

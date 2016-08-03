@@ -9,7 +9,6 @@ extern "C" {
     fn pam_syslog(pamh: pam_handle_t, priority: c_int, fmt: c_str, ...);
 }
 
-
 #[allow(dead_code)]
 #[derive(PartialEq,Debug,Clone)]
 pub enum Severity {
@@ -60,9 +59,9 @@ pub fn err(pamh: pam_handle_t, msg: &str) {
 //     log(pamh, LOG_WARNING, msg);
 // }
 
-pub fn info(pamh: pam_handle_t, msg: &str) {
-    log(pamh, LOG_INFO, msg);
-}
+// pub fn info(pamh: pam_handle_t, msg: &str) {
+//     log(pamh, LOG_INFO, msg);
+// }
 
 pub fn log(pamh: pam_handle_t, severity: Severity, msg: &str) {
     unsafe { pam_syslog(pamh, severity as c_int, CString::new(msg).unwrap().as_ptr()) }
