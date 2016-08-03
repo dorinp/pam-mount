@@ -10,7 +10,6 @@ mod pam;
 mod singleton;
 mod cryptsetup;
 mod mount;
-mod syslog;
 mod config;
 mod libc;
 
@@ -97,7 +96,7 @@ fn mount_info_for(user: &str) -> Result<(String, String, String), String> {
 fn log_errors<T>(pamh: pam_handle_t, result: Result<T, String>) -> c_int {
     match result {
         Ok(_) => (),
-        Err(message) => syslog::err(pamh, &message),
+        Err(message) => pam::err(pamh, &message),
     }
     PAM_SUCCESS as c_int
 }

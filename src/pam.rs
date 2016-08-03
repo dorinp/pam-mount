@@ -7,6 +7,8 @@ use std::mem;
 use self::PamItemType::{PAM_AUTHTOK, PAM_USER};
 use self::PamResult::PAM_SUCCESS;
 use std::ffi::CStr;
+use std::ffi::CString;
+use self::Severity::*;
 
 #[repr(i32)]
 #[derive(PartialEq,Debug,Clone)]
@@ -94,15 +96,40 @@ enum PamItemType {
     PAM_AUTHTOK_TYPE = 13, // The type for pam_get_authtok
 }
 
+#[allow(dead_code)]
+#[derive(PartialEq,Debug,Clone)]
+pub enum Severity {
+    LOG_EMERG,
+    LOG_ALERT,
+    LOG_CRIT,
+    LOG_ERR,
+    LOG_WARNING,
+    LOG_NOTICE,
+    LOG_INFO,
+    LOG_DEBUG,
+}
+
 #[link(name = "pam")]
 #[allow(improper_ctypes)]
 extern "C" {
     // int pam_get_item(const pam_handle_t *pamh, int item_type, const void **item);
     fn pam_get_item(pamh: pam_handle_t, item_type: c_int, item: *mut c_str) -> c_int;
 
+    // void pam_syslog(pam_handle_t *pamh, int priority, const char *fmt, ...);
+    fn pam_syslog(pamh: pam_handle_t, priority: c_int, fmt: c_str, ...);
+
 // int pam_set_data(	pamh, module_data_name, data, (*cleanup)(pam_handle_t *pamh, void *data, int error_status));
 // fn pam_set_data(pamh: pam_handle_t, module_data_name: c_str, data: c_str, cleanup: *c_int) -> c_int;
 // fn pam_get_data(pamh: pam_handle_t, module_data_name: c_str, data: *mut c_str) -> c_int;
+}
+
+
+pub fn err(pamh: pam_handle_t, msg: &str) {
+    log(pamh, LOG_ERR, msg);
+}
+
+pub fn log(pamh: pam_handle_t, severity: Severity, msg: &str) {
+    unsafe { pam_syslog(pamh, severity as c_int, CString::new(msg).unwrap().as_ptr()) }
 }
 
 #[inline]

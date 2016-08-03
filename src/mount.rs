@@ -72,19 +72,9 @@ impl Context {
     // }
     //
 }
+
 impl Drop for Context {
     fn drop(&mut self) {
         unsafe { mnt_free_context(self.ctx) }
     }
 }
-
-
-
-// #[allow(dead_code)]
-// fn main() {
-//
-// let ctx = Context::new("/dev/mapper/home", "/mnt");
-// println!("{:?}", ctx.mount());
-// let ctx = Context::new("/dev/mapper/home", "/mnt");
-// println!("{:?}", ctx.umount());
-// }
